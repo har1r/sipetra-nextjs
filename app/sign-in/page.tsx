@@ -1,25 +1,18 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { signIn } from "@/lib/auth/auth-client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signIn, signUp } from "@/lib/auth/auth-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ArrowRight, Mail, Lock } from "lucide-react";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -27,93 +20,115 @@ export default function SignIn() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
     setError("");
     setLoading(true);
 
     try {
       const result = await signIn.email({
-        email,
-        password,
+        email: email.toLowerCase().trim(),
+        password: password,
       });
 
-      if (result.error) {
-        setError(result.error.message ?? "Failed to sign in");
+      if (result?.error) {
+        setError(result.error.message ?? "Email atau password salah.");
       } else {
         router.push("/dashboard");
+        router.refresh();
       }
     } catch (err) {
-      setError("An unexpected error occurred");
+      setError("Terjadi kesalahan koneksi.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-white p-4">
-      <Card className="w-full max-w-md border-gray-200 shadow-lg">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-black">
-            Sign In
-          </CardTitle>
-          <CardDescription className="text-gray-600">
-            Enter your credentials to access your account
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
+    <div className="flex min-h-screen items-center justify-center bg-[#f4f7fa] p-4 font-sans">
+      <Card className="w-full max-w-[420px] border-none shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] rounded-[32px] bg-white/90 backdrop-blur-md overflow-hidden p-10 md:p-14">
+        <form onSubmit={handleSubmit}>
+          {/* Header Section */}
+          <div className="mb-12 text-center">
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight flex justify-center items-center gap-2">
+              SIPETRA
+              <span className="w-2 h-2 rounded-full bg-indigo-500 mt-2"></span>
+            </h1>
+            <p className="text-slate-400 text-sm font-medium mt-3">
+              Masuk ke akun anda yang sudah terdaftar.
+            </p>
+          </div>
+
+          {/* Form Inputs */}
+          <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-700">
-                Email
+              <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.15em] ml-1">
+                Email Instansi
               </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="border-gray-300 focus:border-primary focus:ring-primary"
-              />
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-indigo-500 transition-colors" />
+                <Input
+                  type="email"
+                  placeholder="nama@pajak.go.id"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="rounded-2xl pl-11 bg-slate-50 border-slate-100 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 h-13 transition-all border-none shadow-inner"
+                />
+              </div>
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-700">
+              <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.15em] ml-1">
                 Password
               </Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={8}
-                className="border-gray-300 focus:border-primary focus:ring-primary"
-              />
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-indigo-500 transition-colors" />
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="rounded-2xl pl-11 bg-slate-50 border-slate-100 h-13 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 transition-all border-none shadow-inner"
+                />
+              </div>
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button
-              type="submit"
-              className="w-full bg-primary hover:bg-primary/90"
-              disabled={loading}
-            >
-              {loading ? "Signing in..." : "Sign In"}
-            </Button>
-            <p className="text-center text-sm text-gray-600">
-              Don't have an account?{" "}
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mt-8 bg-red-50 text-red-500 text-[11px] font-bold p-4 rounded-2xl border border-red-100 text-center animate-in fade-in slide-in-from-top-2">
+              {error}
+            </div>
+          )}
+
+          {/* Action Button */}
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full h-14 bg-slate-900 hover:bg-indigo-600 text-white font-bold rounded-2xl shadow-xl mt-10 transition-all active:scale-95 group flex items-center justify-center gap-3 text-base"
+          >
+            {loading ? (
+              <div className="h-5 w-5 border-2 border-white/30 border-t-white animate-spin rounded-full" />
+            ) : (
+              <>
+                <span>Masuk Sekarang</span>
+                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
+          </Button>
+
+          {/* Footer Link */}
+          <div className="mt-12 pt-8 border-t border-slate-50 text-center">
+            <p className="text-[13px] text-slate-400 font-medium">
+              Belum punya akses?
               <Link
                 href="/sign-up"
-                className="font-medium text-primary hover:underline"
+                className="text-indigo-600 font-bold hover:text-indigo-700 ml-2 underline decoration-indigo-100 underline-offset-8 transition-all hover:decoration-indigo-500"
               >
-                Sign up
+                Daftar Akun
               </Link>
             </p>
-          </CardFooter>
+          </div>
         </form>
       </Card>
     </div>
