@@ -2,12 +2,12 @@ import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { initializeUserBoard } from "../init-user-board";
 import connectDB from "../db";
 
 const mongooseInstance = await connectDB();
 const client = mongooseInstance.connection.getClient();
 const db = client.db();
+
 
 export const auth = betterAuth({
   database: mongodbAdapter(db, {
@@ -17,7 +17,7 @@ export const auth = betterAuth({
   // 1. AKTIFKAN FITUR LOGIN EMAIL & PASSWORD
   emailAndPassword: {
     enabled: true,
-    autoSignIn: true, // Otomatis login setelah pendaftaran berhasil
+    autoSignIn: true,
   },
 
   // 2. KONFIGURASI SESI (Wajib ada jika menggunakan cookieCache)
@@ -57,15 +57,8 @@ export const auth = betterAuth({
           } else if (updatedUser.role === "viewer") {
             updatedUser.stages = [];
           }
-          // Untuk Operator, stages tetap sesuai kiriman form dari Client
 
           return { data: updatedUser };
-        },
-        after: async (user) => {
-          if (user.id) {
-            // Jalankan fungsi inisialisasi board aplikasi SIPETRA
-            await initializeUserBoard(user.id);
-          }
         },
       },
     },
@@ -73,7 +66,6 @@ export const auth = betterAuth({
 });
 
 export async function getSession() {
-  // Gunakan await headers() untuk Next.js App Router terbaru
   const session = await auth.api.getSession({
     headers: await headers(),
   });

@@ -66,7 +66,7 @@ export default function SignUp() {
         router.push("/dashboard");
         router.refresh();
       }
-    } catch (err) {
+    } catch {
       setError("Terjadi kesalahan sistem.");
     } finally {
       setLoading(false);
@@ -74,40 +74,51 @@ export default function SignUp() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f4f7fa] p-4 font-sans">
-      <Card className="w-full max-w-[800px] border-none shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] rounded-[28px] bg-white/90 backdrop-blur-md overflow-hidden">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-[800px] border border-border bg-card shadow-2xl shadow-black/5 rounded-4xl overflow-hidden">
         <form onSubmit={handleSubmit} className="flex flex-col md:flex-row">
-          {/* Sisi Kiri: Form Identitas */}
+          {/* LEFT */}
           <div className="flex-1 p-10 md:p-12">
+            {/* 🔥 LOGO CUSTOM */}
             <div className="mb-8">
-              <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-                SIPETRA
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2"></span>
-              </h1>
-              <p className="text-slate-400 text-sm font-medium mt-1">
+              <div className="flex items-center gap-[7px]">
+                <span className="text-2xl font-black tracking-tight text-foreground">
+                  SIPETR
+                </span>
+                <div className="relative w-6 h-6">
+                  <div className="absolute left-0 top-[-3px] w-0.5 h-full bg-primary rotate-12 origin-top"></div>
+                  <div className="absolute left-1 top-2 w-0.5 h-3 bg-primary rotate-12 origin-top"></div>
+                  <div className="absolute left-2 top-2 w-0.5 h-3 bg-primary rotate-12 origin-top"></div>
+                  <div className="absolute right-2 top-2 w-0.5 h-full bg-primary rotate-12 origin-top"></div>
+                </div>
+              </div>
+
+              <p className="text-muted-foreground text-sm font-medium mt-2">
                 Daftarkan kredensial akses Anda
               </p>
             </div>
 
+            {/* FORM */}
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest ml-1">
+                  <Label className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest ml-1">
                     Nama
                   </Label>
                   <div className="relative group">
-                    <UserCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-indigo-500 transition-colors" />
+                    <UserCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
                       placeholder="Nama"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
-                      className="rounded-xl pl-9 bg-slate-50 border-slate-100 focus:bg-white focus:ring-2 focus:ring-indigo-500/10 h-11 transition-all"
+                      className="rounded-xl pl-9 bg-muted border-border focus:bg-card focus:ring-2 focus:ring-primary/20 h-11 transition-all"
                     />
                   </div>
                 </div>
+
                 <div className="space-y-1.5">
-                  <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest ml-1">
+                  <Label className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest ml-1">
                     Username
                   </Label>
                   <Input
@@ -115,13 +126,13 @@ export default function SignUp() {
                     value={userName}
                     onChange={(e) => setUserName(e.target.value)}
                     required
-                    className="rounded-xl bg-slate-50 border-slate-100 focus:bg-white focus:ring-2 focus:ring-indigo-500/10 h-11 transition-all"
+                    className="rounded-xl bg-muted border-border focus:bg-card focus:ring-2 focus:ring-primary/20 h-11 transition-all"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest ml-1">
+                <Label className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest ml-1">
                   Email
                 </Label>
                 <Input
@@ -130,12 +141,12 @@ export default function SignUp() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="rounded-xl bg-slate-50 border-slate-100 h-11 focus:ring-2 focus:ring-indigo-500/10"
+                  className="rounded-xl bg-muted border-border h-11 focus:ring-2 focus:ring-primary/20"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-widest ml-1">
+                <Label className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest ml-1">
                   Password
                 </Label>
                 <Input
@@ -144,17 +155,17 @@ export default function SignUp() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="rounded-xl bg-slate-50 border-slate-100 h-11 focus:ring-2 focus:ring-indigo-500/10"
+                  className="rounded-xl bg-muted border-border h-11 focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-slate-50">
-              <p className="text-[12px] text-slate-400 font-medium">
+            <div className="mt-8 pt-6 border-t border-border">
+              <p className="text-[12px] text-muted-foreground font-medium">
                 Sudah terdaftar?
                 <Link
                   href="/sign-in"
-                  className="text-indigo-600 font-bold hover:text-indigo-700 ml-1.5 underline decoration-indigo-200 underline-offset-4"
+                  className="text-primary font-bold ml-1.5 underline underline-offset-4"
                 >
                   Masuk Sistem
                 </Link>
@@ -162,49 +173,60 @@ export default function SignUp() {
             </div>
           </div>
 
-          {/* Sisi Kanan: Hak Akses & Action */}
-          <div className="w-full md:w-[320px] bg-slate-50/70 p-10 flex flex-col justify-between border-l border-slate-100">
+          {/* RIGHT */}
+          <div className="w-full md:w-[320px] bg-muted/40 p-10 flex flex-col justify-between border-l border-border">
             <div className="space-y-6">
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-indigo-600">
+                <div className="flex items-center gap-2 text-primary">
                   <ShieldCheck className="w-4 h-4" />
                   <span className="text-[11px] font-black uppercase tracking-widest">
                     Akses Kontrol
                   </span>
                 </div>
 
-                <div className="space-y-2">
-                  <Select onValueChange={setRole} defaultValue={role}>
-                    <SelectTrigger className="bg-white border-slate-200 rounded-xl h-11 shadow-sm focus:ring-indigo-500/10 transition-all">
-                      <SelectValue placeholder="Pilih Role" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-100 shadow-xl">
-                      <SelectItem value="admin">Administrator</SelectItem>
-                      <SelectItem value="operator">Operator</SelectItem>
-                      <SelectItem value="viewer">Viewer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select onValueChange={setRole} defaultValue={role}>
+                  <SelectTrigger className="bg-card border-border rounded-xl h-11 shadow-sm focus:ring-primary/20">
+                    <SelectValue placeholder="Pilih Role" />
+                  </SelectTrigger>
+
+                  <SelectContent
+                    position="popper"
+                    sideOffset={8}
+                    className="z-50 rounded-xl border border-border bg-card shadow-xl"
+                  >
+                    <SelectItem value="admin">Administrator</SelectItem>
+                    <SelectItem value="operator">Operator</SelectItem>
+                    <SelectItem value="viewer">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="min-h-[140px]">
                 {role === "operator" ? (
                   <div className="space-y-3 animate-in fade-in zoom-in-95 duration-300">
-                    <Label className="text-slate-400 text-[9px] font-bold uppercase tracking-widest ml-1">
+                    <Label className="text-muted-foreground text-[9px] font-bold uppercase tracking-widest ml-1">
                       Cakupan Tahapan
                     </Label>
+
                     <div className="flex flex-wrap gap-2">
                       {AVAILABLE_STAGES.map((stage) => (
                         <label
                           key={stage.id}
                           className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-all cursor-pointer flex items-center gap-2 ${
                             selectedStages.includes(stage.id)
-                              ? "bg-indigo-600 border-indigo-600 text-white shadow-md"
-                              : "bg-white border-slate-200 text-slate-500 hover:border-indigo-300"
+                              ? "text-white shadow-md"
+                              : "bg-card border-border text-muted-foreground hover:border-primary/40"
                           }`}
+                          style={
+                            selectedStages.includes(stage.id)
+                              ? {
+                                  background:
+                                    "linear-gradient(135deg, #2FB8A9, #1F9D94)",
+                                }
+                              : {}
+                          }
                         >
                           <Checkbox
-                            id={stage.id}
                             checked={selectedStages.includes(stage.id)}
                             onCheckedChange={() => handleStageChange(stage.id)}
                             className="hidden"
@@ -215,25 +237,22 @@ export default function SignUp() {
                     </div>
                   </div>
                 ) : (
-                  <div className="h-28 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center group">
-                    <Briefcase className="w-5 h-5 text-slate-300 mb-2 group-hover:text-indigo-400 transition-colors" />
-                    {role === "admin" ? (
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                        Akses Penuh ke Semua Tahapan
-                      </p>
-                    ) : (
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                        Akses Terbatas, Tidak Memiliki Tahapan
-                      </p>
-                    )}
+                  <div className="h-28 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-2xl p-4 text-center">
+                    <Briefcase className="w-5 h-5 text-muted-foreground mb-2" />
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">
+                      {role === "admin"
+                        ? "Akses Penuh ke Semua Tahapan"
+                        : "Akses Terbatas"}
+                    </p>
                   </div>
                 )}
               </div>
             </div>
 
+            {/* BUTTON */}
             <div className="space-y-4 mt-10">
               {error && (
-                <div className="bg-red-50 text-red-500 text-[10px] font-bold p-2.5 rounded-lg border border-red-100 text-center animate-in fade-in slide-in-from-bottom-2">
+                <div className="bg-red-50 text-red-500 text-[10px] font-bold p-2.5 rounded-lg border border-red-100 text-center">
                   {error}
                 </div>
               )}
@@ -241,14 +260,17 @@ export default function SignUp() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-slate-900 hover:bg-indigo-600 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 group flex items-center justify-center gap-2"
+                className="w-full h-12 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+                style={{
+                  background: "linear-gradient(135deg, #2FB8A9, #1F9D94)",
+                }}
               >
                 {loading ? (
                   <div className="h-4 w-4 border-2 border-white/30 border-t-white animate-spin rounded-full" />
                 ) : (
                   <>
                     <span>Buat Akun</span>
-                    <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="h-4 w-4" />
                   </>
                 )}
               </Button>

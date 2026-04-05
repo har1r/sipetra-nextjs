@@ -17,80 +17,108 @@ export default function Header() {
   const { data: session } = useSession();
 
   return (
-    <nav className="relative top-0 z-50 w-full border-b border-slate-100 bg-white/80 backdrop-blur-md">
-      <div className="container mx-auto flex h-16 items-center px-6 justify-between">
+    <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-md">
+      <div className="container mx-auto flex h-20 items-center px-6 justify-between">
+        {/* Brand */}
         <Link
           href="/"
-          className="flex items-center gap-3 transition-opacity hover:opacity-80"
+          className="flex items-center gap-3 transition-transform hover:scale-105 active:scale-95"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
-            <FileText className="h-5 w-5" />
+          <div className="flex items-center gap-[7px]">
+            <span className="text-2xl font-black tracking-tight">SIPETR</span>
+            <div className="relative w-6 h-6">
+              <div className="absolute left-0 top-[-3px] w-0.5 h-full bg-primary rotate-12 origin-top"></div>
+              <div className="absolute left-1 top-2 w-0.5 h-3 bg-primary rotate-12 origin-top"></div>
+              <div className="absolute left-2 top-2 w-0.5 h-3 bg-primary rotate-12 origin-top"></div>
+              <div className="absolute right-2 top-2 w-0.5 h-full bg-primary rotate-12 origin-top"></div>
+            </div>
           </div>
-          <span className="text-xl font-black tracking-tighter text-slate-900">
-            SIPETRA
-          </span>
         </Link>
 
-        <div className="flex items-center gap-3 md:gap-4">
+        {/* Actions */}
+        <div className="flex items-center gap-2 md:gap-4">
           {session?.user ? (
             <>
-              <Link href="/dashboard">
+              {/* Dashboard Button */}
+              <Link href="/dashboard" className="hidden sm:block">
                 <Button
                   variant="ghost"
-                  className="text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
+                  className="text-sm font-extrabold text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl px-5 transition-all"
                 >
                   Dashboard
                 </Button>
               </Link>
+
+              {/* Avatar */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="relative h-10 w-10 rounded-full border border-slate-200 p-0 hover:bg-slate-50 transition-all"
+                    className="relative h-11 w-11 rounded-2xl border border-border bg-card p-0 hover:bg-muted transition-all shadow-sm"
                   >
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-slate-900 text-white text-xs font-black">
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback
+                        className="text-white text-xs font-black"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #2FB8A9, #1F9D94)",
+                        }}
+                      >
                         {session.user.name?.[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
 
+                {/* Dropdown */}
                 <DropdownMenuContent
-                  className="w-56 rounded-2xl border-slate-100 p-2 shadow-xl"
+                  className="w-64 rounded-3xl border border-border bg-card p-3 shadow-2xl shadow-black/5"
                   align="end"
+                  sideOffset={12}
                 >
-                  <DropdownMenuLabel className="font-normal px-3 py-2">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-bold leading-none text-slate-900">
+                  <DropdownMenuLabel className="font-normal px-3 py-3">
+                    <div className="flex flex-col space-y-1.5">
+                      <p className="text-sm font-black leading-none text-foreground">
                         {session.user.name}
                       </p>
-                      <p className="text-[11px] leading-none text-slate-400 font-medium">
+                      <p className="text-[12px] leading-none text-muted-foreground font-bold">
                         {session.user.email}
                       </p>
                     </div>
                   </DropdownMenuLabel>
-                  <div className="h-px bg-slate-50 my-2" />
-                  <SignOutButton />
+
+                  <div className="h-px bg-border my-2 mx-1" />
+
+                  <div className="p-1">
+                    <SignOutButton />
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
           ) : (
-            <>
+            <div className="flex items-center gap-2">
+              {/* Login */}
               <Link href="/sign-in">
                 <Button
                   variant="ghost"
-                  className="text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl px-5"
+                  className="text-sm font-extrabold text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl px-6 transition-all"
                 >
                   Masuk
                 </Button>
               </Link>
+
+              {/* Register */}
               <Link href="/sign-up">
-                <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-6 text-sm font-bold shadow-sm transition-all active:scale-95">
+                <Button
+                  className="rounded-2xl px-8 h-11 text-sm font-black text-white shadow-lg transition-all hover:-translate-y-0.5 active:scale-95 border-0"
+                  style={{
+                    background: "linear-gradient(135deg, #2FB8A9, #1F9D94)",
+                  }}
+                >
                   Daftar
                 </Button>
               </Link>
-            </>
+            </div>
           )}
         </div>
       </div>

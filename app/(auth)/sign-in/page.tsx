@@ -35,7 +35,7 @@ export default function SignIn() {
         router.push("/dashboard");
         router.refresh();
       }
-    } catch (err) {
+    } catch {
       setError("Terjadi kesalahan koneksi.");
     } finally {
       setLoading(false);
@@ -43,69 +43,85 @@ export default function SignIn() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f4f7fa] p-4 font-sans">
-      <Card className="w-full max-w-[420px] border-none shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] rounded-[32px] bg-white/90 backdrop-blur-md overflow-hidden p-10 md:p-14">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-[420px] border border-border bg-card shadow-2xl shadow-black/5 rounded-4xl overflow-hidden p-10 md:p-14">
         <form onSubmit={handleSubmit}>
-          {/* Header Section */}
+          {/* 🔥 HEADER */}
           <div className="mb-12 text-center">
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight flex justify-center items-center gap-2">
-              SIPETRA
-              <span className="w-2 h-2 rounded-full bg-indigo-500 mt-2"></span>
-            </h1>
-            <p className="text-slate-400 text-sm font-medium mt-3">
+            {/* LOGO CUSTOM */}
+            <div className="flex items-center gap-[7px]">
+              <span className="text-2xl font-black tracking-tight text-foreground">
+                SIPETR
+              </span>
+              <div className="relative w-6 h-6">
+                <div className="absolute left-0 top-[-3px] w-0.5 h-full bg-primary rotate-12 origin-top"></div>
+                <div className="absolute left-1 top-2 w-0.5 h-3 bg-primary rotate-12 origin-top"></div>
+                <div className="absolute left-2 top-2 w-0.5 h-3 bg-primary rotate-12 origin-top"></div>
+                <div className="absolute right-2 top-2 w-0.5 h-full bg-primary rotate-12 origin-top"></div>
+              </div>
+            </div>
+
+            <p className="text-muted-foreground text-sm font-medium mt-3">
               Masuk ke akun anda yang sudah terdaftar.
             </p>
           </div>
 
-          {/* Form Inputs */}
+          {/* 🔥 INPUT */}
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.15em] ml-1">
+              <Label className="text-muted-foreground text-[10px] font-bold uppercase tracking-[0.15em] ml-1">
                 Email Instansi
               </Label>
+
               <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-indigo-500 transition-colors" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+
                 <Input
                   type="email"
                   placeholder="nama@pajak.go.id"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="rounded-2xl pl-11 bg-slate-50 border-slate-100 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 h-13 transition-all border-none shadow-inner"
+                  className="rounded-2xl pl-11 bg-muted border-border focus:bg-card focus:ring-2 focus:ring-primary/20 h-12 transition-all shadow-sm"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.15em] ml-1">
+              <Label className="text-muted-foreground text-[10px] font-bold uppercase tracking-[0.15em] ml-1">
                 Password
               </Label>
+
               <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-indigo-500 transition-colors" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+
                 <Input
                   type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="rounded-2xl pl-11 bg-slate-50 border-slate-100 h-13 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 transition-all border-none shadow-inner"
+                  className="rounded-2xl pl-11 bg-muted border-border h-12 focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
                 />
               </div>
             </div>
           </div>
 
-          {/* Error Message */}
+          {/* ERROR */}
           {error && (
             <div className="mt-8 bg-red-50 text-red-500 text-[11px] font-bold p-4 rounded-2xl border border-red-100 text-center animate-in fade-in slide-in-from-top-2">
               {error}
             </div>
           )}
 
-          {/* Action Button */}
+          {/* 🔥 BUTTON */}
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-14 bg-slate-900 hover:bg-indigo-600 text-white font-bold rounded-2xl shadow-xl mt-10 transition-all active:scale-95 group flex items-center justify-center gap-3 text-base"
+            className="w-full h-14 text-white font-bold rounded-2xl shadow-xl mt-10 transition-all active:scale-95 flex items-center justify-center gap-3 text-base"
+            style={{
+              background: "linear-gradient(135deg, #2FB8A9, #1F9D94)",
+            }}
           >
             {loading ? (
               <div className="h-5 w-5 border-2 border-white/30 border-t-white animate-spin rounded-full" />
@@ -117,13 +133,13 @@ export default function SignIn() {
             )}
           </Button>
 
-          {/* Footer Link */}
-          <div className="mt-12 pt-8 border-t border-slate-50 text-center">
-            <p className="text-[13px] text-slate-400 font-medium">
+          {/* FOOTER */}
+          <div className="mt-12 pt-8 border-t border-border text-center">
+            <p className="text-[13px] text-muted-foreground font-medium">
               Belum punya akses?
               <Link
                 href="/sign-up"
-                className="text-indigo-600 font-bold hover:text-indigo-700 ml-2 underline decoration-indigo-100 underline-offset-8 transition-all hover:decoration-indigo-500"
+                className="text-primary font-bold ml-2 underline underline-offset-4"
               >
                 Daftar Akun
               </Link>
