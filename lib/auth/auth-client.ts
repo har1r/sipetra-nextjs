@@ -2,7 +2,7 @@ import { createAuthClient } from "better-auth/react";
 
 export const authClient = createAuthClient({
   baseURL:
-    process.env.NEXT_PUBLIC_APP_URL || "https://sipetra-nextjs.vercel.app",
+    process.env.NEXT_PUBLIC_APP_URL! || "https://sipetra-nextjs.vercel.app",
   // Menggunakan inferAdditionalFields agar sinkron dengan server
   inferAdditionalFields: true,
   // Kita pertegas skema di sisi client agar IntelliSense berjalan sempurna
