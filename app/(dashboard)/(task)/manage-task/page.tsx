@@ -1,22 +1,25 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Edit3,
   Trash2,
   Search,
-  Filter,
   ChevronRight,
-  Database,
-  User,
-  MapPin,
-  Layers,
   Loader2,
-  Plus, // Tambahkan ikon Plus
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 
-// Re-use tipe data yang sama agar konsisten
+/* =========================
+   HELPER & TYPES
+========================= */
+
+const capitalize = (str: string) => {
+  if (!str) return "-";
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
 type Task = {
   _id: string;
   serviceType: string;
@@ -24,153 +27,216 @@ type Task = {
   nop: string;
   baseData: {
     taxpayerName: string;
+    taxpayerAddress: string;
+    taxpayerVillage: string;
+    taxpayerSubdistrict: string;
+    taxObjectAddress: string;
     taxObjectVillage: string;
+    taxObjectSubdistrict: string;
     landArea: number;
+    buildingArea: number;
   };
+  requestedData: {
+    taxObjectAddress: string;
+    taxObjectVillage: string;
+    taxObjectSubdistrict: string;
+  };
+  requestedChanges: any[];
   currentStage: string;
+  overallStatus: string;
+  isLocked: boolean;
+  createdAt: string;
   updatedAt: string;
 };
 
-interface ManageTasksProps {
-  tasks: Task[];
-}
+export default function ManageTasksTable() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-export default function ManageTasksTable({ tasks = [] }: ManageTasksProps) {
-  // 1. LOADING STATE GUARD
-  if (!tasks) {
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch("/api/task");
+        const result = await res.json();
+        setTasks(result.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, []);
+
+  if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-muted-foreground animate-pulse text-sm">
-          Menghubungkan ke database...
-        </p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 md:p-10 bg-background min-h-screen">
-      {/* HEADER & SEARCH */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <div className="max-w-7xl mx-auto px-6 py-8 w-full overflow-hidden">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-primary flex items-center">
-            <Database className="w-6 h-6 mr-3 text-primary/70" />
-            Manajemen Data SIPETRA
+          <h1 className="text-xl font-semibold text-foreground">
+            Manajemen Data
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Kelola, filter, dan perbarui seluruh antrean pelayanan pajak daerah.
+          <p className="text-sm text-muted-foreground">
+            Kelola data pelayanan dengan rapi dan terstruktur
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* TOMBOL AJUKAN PELAYANAN BARU */}
           <Link
             href="/create-task"
-            className="btn-mongo py-2 px-4 flex items-center text-sm font-semibold bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-primary text-white rounded-md hover:opacity-90"
           >
-            <Plus className="w-4 h-4 mr-2" /> Ajukan Pelayanan
+            <Plus className="w-4 h-4" />
+            Ajukan
           </Link>
 
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Cari NOPEL atau Nama..."
-              className="input-mongo pl-10 w-full md:w-[250px] text-sm py-2"
+              placeholder="Cari..."
+              className="pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-1 focus:ring-primary bg-background"
             />
           </div>
-          <button className="btn-mongo-secondary py-2 px-3 flex items-center text-sm font-medium border border-border rounded-lg hover:bg-muted transition-all">
-            <Filter className="w-4 h-4 mr-2" /> Filter
-          </button>
         </div>
       </div>
 
-      {/* TABLE CONTAINER */}
-      <div className="section-mongo !p-0 overflow-hidden border border-border shadow-md rounded-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-muted/50 border-b border-border">
-                <th className="p-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                  <span className="flex items-center">
-                    <User className="w-3 h-3 mr-2" /> Identitas & NOPEL
-                  </span>
+      {/* TABLE */}
+      <div className="border rounded-lg w-full overflow-hidden">
+        <div className="w-full overflow-x-auto">
+          <table className="min-w-max text-sm">
+            {/* HEADER */}
+            <thead className="bg-muted/40 text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
+                  No
                 </th>
-                <th className="p-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                  <span className="flex items-center">
-                    <MapPin className="w-3 h-3 mr-2" /> Objek Pajak & NOP
-                  </span>
+                <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
+                  Nopel / Nop
                 </th>
-                <th className="p-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-                  <span className="flex items-center">
-                    <Layers className="w-3 h-3 mr-2" /> Layanan & Tahapan
-                  </span>
+                <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
+                  Wajib Pajak
                 </th>
-                <th className="p-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground text-center">
+                <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
+                  Lokasi
+                </th>
+                <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
+                  Luas
+                </th>
+                <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
+                  Tahapan
+                </th>
+                <th className="px-4 py-3 text-left font-medium whitespace-nowrap">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-center font-medium whitespace-nowrap">
                   Aksi
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/50">
-              {/* 2. EMPTY STATE CHECK */}
+
+            {/* BODY */}
+            <tbody>
               {tasks.length > 0 ? (
-                tasks.map((task) => (
+                tasks.map((task, index) => (
                   <tr
                     key={task._id}
-                    className="group hover:bg-muted/30 transition-colors"
+                    className="border-t hover:bg-muted/20 transition-colors"
                   >
-                    <td className="p-4">
+                    {/* NO */}
+                    <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                      {index + 1}
+                    </td>
+
+                    {/* NOPEL */}
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
-                          {task.baseData?.taxpayerName || "Tanpa Nama"}
+                        <span className="text-sm font-medium text-foreground">
+                          {capitalize(task.nopel)}
                         </span>
-                        <span className="text-[10px] font-mono text-muted-foreground mt-0.5 bg-muted px-1.5 py-0.5 rounded w-fit">
-                          {task.nopel}
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {task.nop}
                         </span>
                       </div>
                     </td>
 
-                    <td className="p-4">
+                    {/* WAJIB PAJAK */}
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span className="text-sm text-foreground italic">
-                          {task.baseData?.taxObjectVillage || "-"}
+                        <span className="text-sm text-foreground">
+                          {capitalize(task.baseData?.taxpayerName)}
                         </span>
-                        <span className="text-xs text-muted-foreground font-medium uppercase tracking-tight">
-                          NOP: {task.nop}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="p-4">
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 w-fit">
-                          {task.serviceType}
-                        </span>
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 w-fit">
-                          {task.currentStage}
+                        <span className="text-xs text-muted-foreground">
+                          {capitalize(task.requestedChanges?.[0]?.taxpayerName)}
                         </span>
                       </div>
                     </td>
 
-                    <td className="p-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
+                    {/* LOKASI */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-sm text-foreground">
+                          {capitalize(task.baseData?.taxObjectSubdistrict)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {capitalize(task.baseData?.taxObjectVillage)}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* LUAS */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="text-sm text-foreground">
+                          {task.baseData?.landArea} /{" "}
+                          {task.baseData?.buildingArea}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {task.requestedChanges?.[0]?.landArea} /{" "}
+                          {task.requestedChanges?.[0]?.buildingArea}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* STAGE */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="text-xs px-2 py-1 rounded bg-muted text-foreground">
+                        {capitalize(task.currentStage)}
+                      </span>
+                    </td>
+
+                    {/* STATUS */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="text-sm text-muted-foreground">
+                        {capitalize(task.overallStatus)}
+                      </span>
+                    </td>
+
+                    {/* AKSI */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex justify-center items-center gap-1">
                         <Link
                           href={`/dashboard/tasks/update/${task._id}`}
-                          className="p-2 hover:bg-primary/10 text-muted-foreground hover:text-primary rounded-lg transition-all"
-                          title="Edit Data"
+                          className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition"
                         >
                           <Edit3 className="w-4 h-4" />
                         </Link>
-                        <button
-                          className="p-2 hover:bg-red-50 text-muted-foreground hover:text-red-600 rounded-lg transition-all"
-                          title="Hapus"
-                        >
+
+                        <button className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition">
                           <Trash2 className="w-4 h-4" />
                         </button>
-                        <button
-                          className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-all"
-                          title="Lihat Detail"
-                        >
+
+                        <button className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition">
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
@@ -179,13 +245,11 @@ export default function ManageTasksTable({ tasks = [] }: ManageTasksProps) {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="p-12 text-center">
-                    <div className="flex flex-col items-center justify-center opacity-40">
-                      <Database className="w-12 h-12 mb-3" />
-                      <p className="text-sm font-medium">
-                        Data tidak ditemukan.
-                      </p>
-                    </div>
+                  <td
+                    colSpan={9}
+                    className="py-16 text-center text-sm text-muted-foreground"
+                  >
+                    Tidak ada data
                   </td>
                 </tr>
               )}
@@ -193,20 +257,10 @@ export default function ManageTasksTable({ tasks = [] }: ManageTasksProps) {
           </table>
         </div>
 
-        {/* FOOTER TABEL / PAGINATION */}
-        <div className="p-4 border-t border-border bg-muted/20 flex items-center justify-between text-xs text-muted-foreground">
-          <span>
-            Menampilkan <b>{tasks.length}</b> data pelayanan
-          </span>
-          <div className="flex items-center gap-4">
-            <button className="hover:text-primary disabled:opacity-30" disabled>
-              Previous
-            </button>
-            <span className="font-medium text-foreground">
-              Halaman 1 dari 1
-            </span>
-            <button className="hover:text-primary">Next</button>
-          </div>
+        {/* FOOTER */}
+        <div className="flex items-center justify-between px-4 py-3 border-t text-xs text-muted-foreground">
+          <span>Total {tasks.length} data</span>
+          <span>Halaman 1</span>
         </div>
       </div>
     </div>

@@ -2,8 +2,9 @@
 
 export const dynamic = "force-dynamic";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Trash2,
@@ -13,6 +14,8 @@ import {
   MapPin,
   AlertCircle,
   Link as LinkIcon,
+  Loader2,
+  XCircle,
 } from "lucide-react";
 
 // --- Types ---
@@ -56,11 +59,16 @@ type TaskFormData = {
 
 export default function TaskForm() {
   const [activeTab, setActiveTab] = useState("info");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const router = useRouter();
 
   const {
     register,
     control,
     handleSubmit,
+    watch,
+    reset,
     formState: { errors },
   } = useForm<TaskFormData>({
     defaultValues: {
@@ -94,16 +102,94 @@ export default function TaskForm() {
     name: "attachments",
   });
 
-  const onSubmit = (data: TaskFormData) => {
-    console.log("Data SIPETRA:", data);
-    alert("Form berhasil divalidasi!");
+  // --- LOGIKA AUTO-SAVE & PERSISTENCE ---
+  useEffect(() => {
+    const savedData = localStorage.getItem("sipetra_form_cache");
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        reset(parsed);
+      } catch (e) {
+        console.error("Gagal load cache form:", e);
+      }
+    }
+    setIsHydrated(true);
+  }, [reset]);
+
+  const allFields = watch();
+  useEffect(() => {
+    if (isHydrated) {
+      localStorage.setItem("sipetra_form_cache", JSON.stringify(allFields));
+    }
+  }, [allFields, isHydrated]);
+
+  // --- LOGIKA BATAL / RESET ---
+  const handleCancel = () => {
+    localStorage.removeItem("sipetra_form_cache");
+      reset({
+        serviceType: "pengaktifan",
+        nopel: "",
+        nop: "",
+        baseData: {
+          taxpayerName: "",
+          taxpayerAddress: "",
+          taxpayerVillage: "",
+          taxpayerSubdistrict: "",
+          taxObjectAddress: "",
+          taxObjectVillage: "",
+          taxObjectSubdistrict: "",
+          landArea: 0,
+          buildingArea: 0,
+        },
+        requestedData: {
+          taxObjectAddress: "",
+          taxObjectVillage: "",
+          taxObjectSubdistrict: "",
+        },
+        currentStage: "penginputan",
+        requestedChanges: [],
+        attachments: [{ driveLink: "", linkName: "" }],
+      });
+      setActiveTab("info");
   };
 
-  // Helper styling menggunakan utility dari global.css
+  // --- SUBMIT HANDLER ---
+  const onSubmit = async (data: TaskFormData) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/task", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Gagal mengirim data");
+      }
+
+      handleCancel(); // Clear form & cache setelah submit sukses
+      
+      alert("Sukses! " + result.message);
+      router.push("/dashboard"); 
+      router.refresh();
+    } catch (error: any) {
+      console.error("SUBMIT_ERROR:", error);
+      alert("Error: " + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const labelStyle =
     "block text-xs font-semibold text-muted-foreground mb-1.5 ml-1 capitalize tracking-wider";
   const inputStyle =
-    "input-mongo w-full focus:ring-2 focus:ring-ring transition-all";
+    "input-mongo w-full focus:ring-2 focus:ring-ring transition-all disabled:opacity-50";
+
+  if (!isHydrated) return null;
 
   return (
     <div className="max-w-6xl mx-auto p-6 md:p-12 min-h-screen bg-background">
@@ -118,7 +204,7 @@ export default function TaskForm() {
         </p>
       </div>
 
-      {/* TABS NAVIGATION - Mengikuti style sidebar-item/active dari Home */}
+      {/* TABS NAVIGATION */}
       <div className="flex space-x-2 bg-muted p-2 rounded-xl mb-8 overflow-x-auto no-scrollbar border border-border">
         {[
           { id: "info", label: "Informasi Utama", icon: FileText },
@@ -129,9 +215,11 @@ export default function TaskForm() {
           <button
             key={tab.id}
             type="button"
+            disabled={isLoading}
             onClick={() => setActiveTab(tab.id)}
             className={`sidebar-item min-w-[160px] justify-center py-2.5 transition-all
-              ${activeTab === tab.id ? "active bg-card shadow-sm border border-border" : ""}`}
+              ${activeTab === tab.id ? "active bg-card shadow-sm border border-border" : ""} 
+              ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <tab.icon
               className={`w-4 h-4 mr-2 ${activeTab === tab.id ? "text-primary" : "text-muted-foreground"}`}
@@ -168,11 +256,9 @@ export default function TaskForm() {
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className={labelStyle}>Jenis Layanan</label>
-                  <select {...register("serviceType")} className={inputStyle}>
+                  <select {...register("serviceType")} className={inputStyle} disabled={isLoading}>
                     <option value="pengaktifan">Pengaktifan</option>
-                    <option value="mutasi habis update">
-                      Mutasi Habis Update
-                    </option>
+                    <option value="mutasi habis update">Mutasi Habis Update</option>
                     <option value="mutasi sebagian">Mutasi Sebagian</option>
                     <option value="pembetulan">Pembetulan</option>
                     <option value="objek pajak baru">Objek Pajak Baru</option>
@@ -182,20 +268,22 @@ export default function TaskForm() {
                   <label className={labelStyle}>Nomor Pelayanan (NOPEL)</label>
                   <input
                     type="text"
-                    {...register("nopel", { required: true })}
-                    className={inputStyle}
+                    {...register("nopel", { required: "Nopel wajib diisi" })}
+                    className={`${inputStyle} ${errors.nopel ? "border-red-500" : ""}`}
+                    disabled={isLoading}
                   />
+                  {errors.nopel && <span className="text-[10px] text-red-500 mt-1 ml-1">{errors.nopel.message}</span>}
                 </div>
               </div>
               <div className="md:col-span-1">
-                <label className={labelStyle}>
-                  Nomor Objek Pajak (18 Digit)
-                </label>
+                <label className={labelStyle}>Nomor Objek Pajak (18 Digit)</label>
                 <input
                   type="text"
-                  {...register("nop", { required: true })}
-                  className={inputStyle}
+                  {...register("nop", { required: "NOP wajib diisi" })}
+                  className={`${inputStyle} ${errors.nop ? "border-red-500" : ""}`}
+                  disabled={isLoading}
                 />
+                {errors.nop && <span className="text-[10px] text-red-500 mt-1 ml-1">{errors.nop.message}</span>}
               </div>
             </div>
           </div>
@@ -214,6 +302,7 @@ export default function TaskForm() {
                   <input
                     {...register("baseData.taxpayerName")}
                     className={inputStyle}
+                    disabled={isLoading}
                   />
                 </div>
                 <div>
@@ -221,6 +310,7 @@ export default function TaskForm() {
                   <input
                     {...register("baseData.taxpayerAddress")}
                     className={inputStyle}
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -229,6 +319,7 @@ export default function TaskForm() {
                     <input
                       {...register("baseData.taxpayerVillage")}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                   <div>
@@ -236,6 +327,7 @@ export default function TaskForm() {
                     <input
                       {...register("baseData.taxpayerSubdistrict")}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -244,8 +336,7 @@ export default function TaskForm() {
 
             <div className="section-mongo">
               <h3 className="text-lg font-semibold mb-6 flex items-center border-b border-border pb-4">
-                <MapPin className="w-5 h-5 mr-3 text-primary" /> Objek Pajak
-                Lama
+                <MapPin className="w-5 h-5 mr-3 text-primary" /> Objek Pajak Lama
               </h3>
               <div className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
@@ -253,16 +344,18 @@ export default function TaskForm() {
                     <label className={labelStyle}>Luas Tanah (m²)</label>
                     <input
                       type="number"
-                      {...register("baseData.landArea")}
+                      {...register("baseData.landArea", { valueAsNumber: true })}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                   <div>
                     <label className={labelStyle}>Luas Bangunan (m²)</label>
                     <input
                       type="number"
-                      {...register("baseData.buildingArea")}
+                      {...register("baseData.buildingArea", { valueAsNumber: true })}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -271,6 +364,7 @@ export default function TaskForm() {
                   <input
                     {...register("baseData.taxObjectAddress")}
                     className={inputStyle}
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -279,6 +373,7 @@ export default function TaskForm() {
                     <input
                       {...register("baseData.taxObjectVillage")}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                   <div>
@@ -286,6 +381,7 @@ export default function TaskForm() {
                     <input
                       {...register("baseData.taxObjectSubdistrict")}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -302,11 +398,12 @@ export default function TaskForm() {
                 Lokasi Objek Pajak Baru
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-1">
+                <div>
                   <label className={labelStyle}>Alamat Letak Objek</label>
                   <input
                     {...register("requestedData.taxObjectAddress")}
                     className={inputStyle}
+                    disabled={isLoading}
                   />
                 </div>
                 <div>
@@ -314,6 +411,7 @@ export default function TaskForm() {
                   <input
                     {...register("requestedData.taxObjectVillage")}
                     className={inputStyle}
+                    disabled={isLoading}
                   />
                 </div>
                 <div>
@@ -321,6 +419,7 @@ export default function TaskForm() {
                   <input
                     {...register("requestedData.taxObjectSubdistrict")}
                     className={inputStyle}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -329,15 +428,12 @@ export default function TaskForm() {
             <div className="section-mongo">
               <div className="flex justify-between items-center mb-8 border-b border-border pb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">
-                    Rincian Perubahan
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Sesuai data sertifikat atau bukti kepemilikan terbaru
-                  </p>
+                  <h3 className="text-lg font-semibold text-foreground">Rincian Perubahan</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Sesuai data sertifikat terbaru</p>
                 </div>
                 <button
                   type="button"
+                  disabled={isLoading}
                   onClick={() =>
                     appendReq({
                       taxpayerName: "",
@@ -350,7 +446,7 @@ export default function TaskForm() {
                       status: "in_progress",
                     })
                   }
-                  className="btn-mongo flex items-center text-xs"
+                  className="btn-mongo flex items-center text-xs disabled:opacity-50"
                 >
                   <Plus className="w-4 h-4 mr-1.5" /> Tambah Item
                 </button>
@@ -358,14 +454,12 @@ export default function TaskForm() {
 
               <div className="space-y-6">
                 {reqFields.map((field, index) => (
-                  <div
-                    key={field.id}
-                    className="card-mongo p-6 relative group hover-mongo transition-colors"
-                  >
+                  <div key={field.id} className="card-mongo p-6 relative group hover-mongo transition-colors">
                     <button
                       type="button"
+                      disabled={isLoading}
                       onClick={() => removeReq(index)}
-                      className="absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-md"
+                      className="absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-md disabled:hidden"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -374,10 +468,9 @@ export default function TaskForm() {
                       <div className="md:col-span-2">
                         <label className={labelStyle}>Nama WP Baru</label>
                         <input
-                          {...register(
-                            `requestedChanges.${index}.taxpayerName`,
-                          )}
+                          {...register(`requestedChanges.${index}.taxpayerName`)}
                           className={inputStyle}
+                          disabled={isLoading}
                         />
                       </div>
                       <div className="md:col-span-2">
@@ -385,36 +478,32 @@ export default function TaskForm() {
                         <input
                           {...register(`requestedChanges.${index}.certificate`)}
                           className={inputStyle}
+                          disabled={isLoading}
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <label className={labelStyle}>
-                          Alamat Domisili Baru
-                        </label>
+                        <label className={labelStyle}>Alamat Domisili Baru</label>
                         <input
-                          {...register(
-                            `requestedChanges.${index}.taxpayerAddress`,
-                          )}
+                          {...register(`requestedChanges.${index}.taxpayerAddress`)}
                           className={inputStyle}
+                          disabled={isLoading}
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-3 md:col-span-2">
                         <div>
                           <label className={labelStyle}>Desa</label>
                           <input
-                            {...register(
-                              `requestedChanges.${index}.taxpayerVillage`,
-                            )}
+                            {...register(`requestedChanges.${index}.taxpayerVillage`)}
                             className={inputStyle}
+                            disabled={isLoading}
                           />
                         </div>
                         <div>
                           <label className={labelStyle}>Kecamatan</label>
                           <input
-                            {...register(
-                              `requestedChanges.${index}.taxpayerSubdistrict`,
-                            )}
+                            {...register(`requestedChanges.${index}.taxpayerSubdistrict`)}
                             className={inputStyle}
+                            disabled={isLoading}
                           />
                         </div>
                       </div>
@@ -422,18 +511,18 @@ export default function TaskForm() {
                         <label className={labelStyle}>Luas Tanah (m²)</label>
                         <input
                           type="number"
-                          {...register(`requestedChanges.${index}.landArea`)}
+                          {...register(`requestedChanges.${index}.landArea`, { valueAsNumber: true })}
                           className={inputStyle}
+                          disabled={isLoading}
                         />
                       </div>
                       <div className="md:col-span-2">
                         <label className={labelStyle}>Luas Bangunan (m²)</label>
                         <input
                           type="number"
-                          {...register(
-                            `requestedChanges.${index}.buildingArea`,
-                          )}
+                          {...register(`requestedChanges.${index}.buildingArea`, { valueAsNumber: true })}
                           className={inputStyle}
+                          disabled={isLoading}
                         />
                       </div>
                     </div>
@@ -441,9 +530,7 @@ export default function TaskForm() {
                 ))}
                 {reqFields.length === 0 && (
                   <div className="py-12 border-2 border-dashed border-border rounded-xl text-center bg-muted/30">
-                    <p className="text-muted-foreground text-sm font-medium">
-                      Belum ada rincian perubahan yang ditambahkan.
-                    </p>
+                    <p className="text-muted-foreground text-sm font-medium">Belum ada rincian perubahan.</p>
                   </div>
                 )}
               </div>
@@ -451,25 +538,22 @@ export default function TaskForm() {
           </div>
         )}
 
-        {/* SECTION 4: ATTACHMENTS (Link Drive) */}
+        {/* SECTION 4: ATTACHMENTS */}
         {activeTab === "docs" && (
           <div className="section-mongo">
             <h3 className="text-lg font-semibold mb-8 flex items-center border-b border-border pb-4">
-              <LinkIcon className="w-5 h-5 mr-3 text-primary" /> Cloud Storage
-              (Drive Link)
+              <LinkIcon className="w-5 h-5 mr-3 text-primary" /> Cloud Storage (Drive Link)
             </h3>
             <div className="space-y-4">
               {attachFields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="flex flex-col md:flex-row gap-4 items-end bg-muted/20 p-5 rounded-xl border border-border"
-                >
+                <div key={field.id} className="flex flex-col md:flex-row gap-4 items-end bg-muted/20 p-5 rounded-xl border border-border">
                   <div className="flex-1 w-full">
                     <label className={labelStyle}>Keterangan Berkas</label>
                     <input
                       placeholder="Contoh: Scan KTP"
                       {...register(`attachments.${index}.linkName`)}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="flex-[2] w-full">
@@ -478,12 +562,14 @@ export default function TaskForm() {
                       placeholder="https://drive.google.com/..."
                       {...register(`attachments.${index}.driveLink`)}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                   <button
                     type="button"
+                    disabled={isLoading}
                     onClick={() => removeAttach(index)}
-                    className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors mb-0.5"
+                    className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors mb-0.5 disabled:opacity-30"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -491,8 +577,9 @@ export default function TaskForm() {
               ))}
               <button
                 type="button"
+                disabled={isLoading}
                 onClick={() => appendAttach({ driveLink: "", linkName: "" })}
-                className="w-full py-6 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:text-primary hover:border-primary transition-all flex items-center justify-center gap-2 text-sm font-semibold"
+                className="w-full py-6 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:text-primary hover:border-primary transition-all flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50"
               >
                 <Plus className="w-4 h-4" /> Tambah Tautan Berkas Baru
               </button>
@@ -502,14 +589,30 @@ export default function TaskForm() {
 
         {/* FOOTER ACTIONS */}
         <div className="flex flex-col md:flex-row justify-end gap-4 pt-8 border-t border-border">
-          <button type="button" className="btn-mongo-secondary px-8">
-            Simpan Draft
+          <button 
+            type="button" 
+            className="btn-mongo-secondary px-8 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            disabled={isLoading}
+            onClick={handleCancel}
+          >
+            <XCircle className="w-4 h-4" />
+            Batal & Hapus Data
           </button>
           <button
             type="submit"
-            className="btn-mongo px-12 flex items-center justify-center shadow-lg shadow-primary/20"
+            disabled={isLoading}
+            className="btn-mongo px-12 flex items-center justify-center shadow-lg shadow-primary/20 min-w-[200px] disabled:opacity-70"
           >
-            <Save className="w-4 h-4 mr-2" /> Ajukan Pelayanan
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> 
+                Memproses...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" /> Ajukan Pelayanan
+              </>
+            )}
           </button>
         </div>
       </form>
