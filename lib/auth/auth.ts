@@ -8,11 +8,13 @@ const mongooseInstance = await connectDB();
 const client = mongooseInstance.connection.getClient();
 const db = client.db();
 
-
 export const auth = betterAuth({
   database: mongodbAdapter(db, {
     client,
   }),
+
+  baseURL: process.env.BETTER_AUTH_URL?.replace(/\/$/, ""),
+  secret: process.env.BETTER_AUTH_SECRET,
 
   // 1. AKTIFKAN FITUR LOGIN EMAIL & PASSWORD
   emailAndPassword: {
