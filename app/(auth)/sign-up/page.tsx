@@ -11,11 +11,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ShieldCheck, UserCircle2, Briefcase } from "lucide-react";
+import { ArrowRight, ShieldCheck, Loader2 } from "lucide-react";
+import { z } from "zod";
+
+const signUpSchema = z.object({
+  name: z.string().min(3, "Nama minimal 3 karakter"),
+  userName: z.string().min(3, "Username minimal 3 karakter"),
+  email: z.email("Format email tidak valid"),
+  password: z.string().min(6, "Password minimal 6 karakter"),
+  role: z.enum(["admin", "operator", "viewer"]),
+});
+
+type SignUpForm = z.infer<typeof signUpSchema>;
 
 const AVAILABLE_STAGES = [
   { id: "penginputan", label: "Penginputan" },
@@ -25,43 +35,71 @@ const AVAILABLE_STAGES = [
   { id: "pemeriksaan", label: "Pemeriksaan" },
 ];
 
-export default function SignUp() {
-  const [name, setName] = useState("");
-  const [userName, setUserName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState("viewer");
-  const [selectedStages, setSelectedStages] = useState<string[]>([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+type SignUpPayload = SignUpForm & {
+  stages: string[];
+};
 
+export default function SignUp() {
   const router = useRouter();
 
-  const handleStageChange = (stageId: string) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<keyof SignUpForm, string>>
+  >({});
+
+  const [selectedStages, setSelectedStages] = useState<string[]>([]);
+
+  const [form, setForm] = useState<SignUpForm>({
+    name: "",
+    userName: "",
+    email: "",
+    password: "",
+    role: "viewer",
+  });
+
+  const handleChange = (name: keyof SignUpForm, value: string) => {
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleStageToggle = (stageId: string) => {
     setSelectedStages((prev) =>
       prev.includes(stageId)
         ? prev.filter((id) => id !== stageId)
-        : [...prev, stageId],
+        : [...prev, stageId]
     );
   };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
     setLoading(true);
 
-    try {
-      const result = await signUp.email({
-        email: email.toLowerCase().trim(),
-        password,
-        name: name.trim(),
-        userName: userName.trim(),
-        role,
-        stages: role === "operator" ? selectedStages : [],
-      } as any);
+    const result = signUpSchema.safeParse(form);
 
-      if (result?.error) {
-        setError(result.error.message ?? "Gagal mendaftarkan akun.");
+    if (!result.success) {
+      const errors: Partial<Record<keyof SignUpForm, string>> = {};
+      result.error.issues.forEach((err) => {
+        const field = err.path[0] as keyof SignUpForm;
+        errors[field] = err.message;
+      });
+      setFieldErrors(errors);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const payload: SignUpPayload = {
+        ...result.data,
+        email: result.data.email.toLowerCase().trim(),
+        stages: form.role === "operator" ? selectedStages : [],
+      };
+
+      const { error: resError } = await signUp.email(payload);
+
+      if (resError) {
+        setError(resError.message ?? "Gagal mendaftarkan akun.");
       } else {
         router.replace("/dashboard");
         router.refresh();
@@ -74,106 +112,114 @@ export default function SignUp() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-6">
-      <Card className="w-full max-w-4xl border border-border bg-card">
+    <div className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
+      <Card className="w-full max-w-4xl border border-border bg-card overflow-hidden">
         <form onSubmit={handleSubmit} className="flex flex-col md:flex-row">
-          {/* ===== LEFT (FORM) ===== */}
-          <div className="flex-1 p-8 md:p-10">
-            {/* LOGO */}
+          
+          {/* LEFT PANEL */}
+          <div className="flex-1 p-8 md:p-10 space-y-6">
             <div className="mb-8 flex items-center gap-2">
-              <span className="text-base font-semibold tracking-tight text-foreground">
-                SIPETR
-              </span>
-
-              {/* ICON */}
-              <div className="relative h-5 w-5">
-                <div className="absolute left-0 top-[-3px] h-full w-px bg-primary/80 rotate-12 origin-top" />
-                <div className="absolute left-[1px] top-1.5 h-2.5 w-px bg-primary/60 rotate-12 origin-top" />
-                <div className="absolute left-[3px] top-1.5 h-2.5 w-px bg-primary/60 rotate-12 origin-top" />
-                <div className="absolute right-[13px] top-1.5 h-full w-px bg-primary/80 rotate-12 origin-top" />
-              </div>
-            </div>
-
-            <p className="text-sm text-muted-foreground mb-6">
-              Daftarkan kredensial akses Anda
-            </p>
-
-            {/* INPUTS */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Nama</Label>
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="input-mongo mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-xs text-muted-foreground">
-                    Username
-                  </Label>
-                  <Input
-                    value={userName}
-                    onChange={(e) => setUserName(e.target.value)}
-                    required
-                    className="input-mongo mt-1"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-xs text-muted-foreground">Email</Label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="input-mongo mt-1"
-                />
-              </div>
-
-              <div>
-                <Label className="text-xs text-muted-foreground">
-                  Password
-                </Label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="input-mongo mt-1"
-                />
-              </div>
-            </div>
-
-            {/* LOGIN LINK */}
-            <div className="mt-6 text-sm text-muted-foreground">
-              Sudah punya akun?
-              <Link href="/sign-in" className="text-primary ml-1">
-                Masuk
-              </Link>
-            </div>
+            <span className="text-base font-semibold tracking-tight text-foreground uppercase">
+              Sipetra
+            </span>
           </div>
 
-          {/* ===== RIGHT (ROLE PANEL) ===== */}
-          <div className="w-full md:w-[300px] border-t md:border-t-0 md:border-l border-border p-8 flex flex-col justify-between bg-muted">
+          <p className="text-sm text-muted-foreground mb-6">
+            Isi formulir di bawah untuk membuat akun baru.
+          </p>
+
+            <div className="space-y-4">
+              
+              {/* NAME & USERNAME */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label>Nama Lengkap</Label>
+                  <Input
+                    value={form.name}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    className="input-mongo"
+                  />
+                  {fieldErrors.name && (
+                    <p className="text-xs text-red-500">{fieldErrors.name}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <Label>Username</Label>
+                  <Input
+                    value={form.userName}
+                    onChange={(e) => handleChange("userName", e.target.value)}
+                    className="input-mongo"
+                  />
+                  {fieldErrors.userName && (
+                    <p className="text-xs text-red-500">
+                      {fieldErrors.userName}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* EMAIL */}
+              <div className="space-y-1">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  className="input-mongo"
+                />
+                {fieldErrors.email && (
+                  <p className="text-xs text-red-500">{fieldErrors.email}</p>
+                )}
+              </div>
+
+              {/* PASSWORD */}
+              <div className="space-y-1">
+                <Label>Password</Label>
+                <Input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => handleChange("password", e.target.value)}
+                  className="input-mongo"
+                />
+                {fieldErrors.password && (
+                  <p className="text-xs text-red-500">
+                    {fieldErrors.password}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Sudah punya akun?{" "}
+              <Link href="/sign-in" className="text-primary hover:underline">
+                Masuk
+              </Link>
+            </p>
+          </div>
+
+          {/* RIGHT PANEL */}
+          <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-border p-8 bg-muted/50 flex flex-col justify-between">
+            
             <div className="space-y-6">
-              {/* ROLE */}
               <div>
                 <div className="flex items-center gap-2 text-primary mb-2">
                   <ShieldCheck className="w-4 h-4" />
-                  <span className="text-xs font-medium uppercase">Role</span>
+                  <span className="text-xs font-bold uppercase">
+                    Otoritas Akses
+                  </span>
                 </div>
 
-                <Select onValueChange={setRole} defaultValue={role}>
-                  <SelectTrigger className="input-mongo">
-                    <SelectValue placeholder="Pilih Role" />
+                <Select
+                  onValueChange={(val) =>
+                    handleChange("role", val as SignUpForm["role"])
+                  }
+                  defaultValue={form.role}
+                >
+                  <SelectTrigger className="input-mongo bg-card">
+                    <SelectValue />
                   </SelectTrigger>
-
-                  <SelectContent className="border border-border bg-card">
+                  <SelectContent className="bg-card border border-border shadow-md">
                     <SelectItem value="admin">Administrator</SelectItem>
                     <SelectItem value="operator">Operator</SelectItem>
                     <SelectItem value="viewer">Viewer</SelectItem>
@@ -182,44 +228,40 @@ export default function SignUp() {
               </div>
 
               {/* STAGES */}
-              {role === "operator" ? (
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">
-                    Tahapan
-                  </Label>
+              <div>
+                <Label className="text-xs uppercase font-semibold">
+                  Tahapan Kerja
+                </Label>
 
-                  <div className="flex flex-wrap gap-2">
-                    {AVAILABLE_STAGES.map((stage) => (
-                      <label
-                        key={stage.id}
-                        className={`px-3 py-1 text-xs border rounded-md cursor-pointer ${
-                          selectedStages.includes(stage.id)
-                            ? "bg-primary text-black"
-                            : "bg-card text-muted-foreground"
+                {form.role === "operator" ? (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {AVAILABLE_STAGES.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => handleStageToggle(s.id)}
+                        className={`px-3 py-1 text-[10px] rounded border ${
+                          selectedStages.includes(s.id)
+                            ? "bg-primary text-white border-primary"
+                            : "bg-card border-border"
                         }`}
                       >
-                        <Checkbox
-                          checked={selectedStages.includes(stage.id)}
-                          onCheckedChange={() => handleStageChange(stage.id)}
-                          className="hidden"
-                        />
-                        {stage.label}
-                      </label>
+                        {s.label}
+                      </button>
                     ))}
                   </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-24 border border-dashed border-border rounded-md text-xs text-muted-foreground">
-                  <Briefcase className="w-4 h-4 mr-2" />
-                  {role === "admin" ? "Akses penuh" : "Akses terbatas"}
-                </div>
-              )}
+                ) : (
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Akses otomatis sesuai role
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* BUTTON */}
-            <div className="mt-8 space-y-3">
+            {/* SUBMIT */}
+            <div className="pt-6 space-y-3">
               {error && (
-                <div className="text-xs text-red-500 border border-red-200 p-2 rounded-md text-center">
+                <div className="text-xs text-red-500 text-center" role="alert">
                   {error}
                 </div>
               )}
@@ -230,15 +272,15 @@ export default function SignUp() {
                 className="btn-mongo w-full flex items-center justify-center gap-2"
               >
                 {loading ? (
-                  <div className="h-4 w-4 border-2 border-black/20 border-t-black animate-spin rounded-full" />
+                  <Loader2 className="animate-spin w-4 h-4" />
                 ) : (
                   <>
-                    Buat Akun
-                    <ArrowRight className="h-4 w-4" />
+                    Daftar <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </div>
+
           </div>
         </form>
       </Card>

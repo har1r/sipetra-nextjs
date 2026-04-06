@@ -2,21 +2,42 @@
 
 import { signOut } from "@/lib/auth/auth-client";
 import { DropdownMenuItem } from "./ui/dropdown-menu";
+import { LogOut, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function SignOutButton() {
+  const [isPending, setIsPending] = useState(false);
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    setIsPending(true);
+    try {
+      await signOut();
+      toast.success("Berhasil keluar");
+      router.replace("/sign-in");
+    } catch (error) {
+      console.error(error);
+      toast.error("Gagal keluar. Silakan coba lagi.");
+    } finally {
+      setIsPending(false);
+    }
+  };
+
   return (
     <DropdownMenuItem
-      onClick={async () => {
-        const result = await signOut();
-        if (result.data) {
-          // 🔥 Hard redirect supaya back button tidak menampilkan dashboard
-          window.location.replace("/sign-in");
-        } else {
-          alert("Error signing out");
-        }
-      }}
+      disabled={isPending}
+      aria-disabled={isPending}
+      onClick={handleSignOut}
+      className="text-red-600 focus:text-red-600 focus:bg-red-50 flex items-center justify-between"
     >
-      Log Out
+      <span>Keluar</span>
+      {isPending ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <LogOut className="h-4 w-4" />
+      )}
     </DropdownMenuItem>
   );
 }

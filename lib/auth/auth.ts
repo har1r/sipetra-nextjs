@@ -4,33 +4,63 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import connectDB from "../db";
 
-const mongooseInstance = await connectDB();
-const client = mongooseInstance.connection.getClient();
-const db = client.db();
+let dbInstance: any;
+
+async function getDb() {
+  if (!dbInstance) {
+    const mongooseInstance = await connectDB();
+    const client = mongooseInstance.connection.getClient();
+    dbInstance = client.db();
+  }
+  return dbInstance;
+}
+
+type Role = "admin" | "viewer";
+
+type Stage =
+  | "penginputan"
+  | "penelitian"
+  | "pengarsipan"
+  | "pengiriman"
+  | "pemeriksaan";
+
+const ROLE_STAGES: Record<Role, Stage[]> = {
+  admin: [
+    "penginputan",
+    "penelitian",
+    "pengarsipan",
+    "pengiriman",
+    "pemeriksaan",
+  ],
+  viewer: [],
+};
+
+if (!process.env.BETTER_AUTH_URL) {
+  throw new Error("Missing BETTER_AUTH_URL");
+}
+
+if (!process.env.BETTER_AUTH_SECRET) {
+  throw new Error("Missing BETTER_AUTH_SECRET");
+}
 
 export const auth = betterAuth({
-  database: mongodbAdapter(db, {
-    client,
-  }),
+  database: mongodbAdapter(await getDb()),
 
-  baseURL: process.env.BETTER_AUTH_URL?.replace(/\/$/, ""),
+  baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
 
-  // 1. AKTIFKAN FITUR LOGIN EMAIL & PASSWORD
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
   },
 
-  // 2. KONFIGURASI SESI (Wajib ada jika menggunakan cookieCache)
   session: {
     cookieCache: {
       enabled: true,
-      maxAge: 60 * 60, // 1 jam
+      maxAge: 3600, // 1 jam
     },
   },
 
-  // 3. DEFINISI FIELD CUSTOM UNTUK SIPETRA
   user: {
     additionalFields: {
       userName: { type: "string", required: true },
@@ -41,45 +71,37 @@ export const auth = betterAuth({
     },
   },
 
-  // 4. LOGIKA OTOMATISASI ROLE & STAGES
   databaseHooks: {
     user: {
       create: {
         before: async (user) => {
-          const updatedUser = { ...user };
+          const role = user.role as Role;
 
-          if (updatedUser.role === "admin") {
-            updatedUser.stages = [
-              "penginputan",
-              "penelitian",
-              "pengarsipan",
-              "pengiriman",
-              "pemeriksaan",
-            ];
-          } else if (updatedUser.role === "viewer") {
-            updatedUser.stages = [];
-          }
-
-          return { data: updatedUser };
+          return {
+            data: {
+              ...user,
+              stages: ROLE_STAGES[role] ?? [],
+            },
+          };
         },
       },
     },
   },
 });
 
-export async function getSession() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  return session;
-}
+// Reuse headers (lebih efisien)
+export const getSession = async () => {
+  const h = await headers();
+  return auth.api.getSession({ headers: h });
+};
 
-export async function signOut() {
-  const result = await auth.api.signOut({
-    headers: await headers(),
-  });
+export const signOutServer = async () => {
+  const h = await headers();
+  const result = await auth.api.signOut({ headers: h });
 
-  if (result.success) {
-    redirect("/sign-in");
+  if (!result.success) {
+    throw new Error("Failed to sign out");
   }
-}
+
+  redirect("/sign-in");
+};
