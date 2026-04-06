@@ -14,25 +14,15 @@ export default function AuthMarketingLayout({
   }, []);
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-background selection:bg-primary/10 selection:text-primary">
-      
-      {/* Soft Gradient Background Blobs */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        {/* Menggunakan opacity rendah dari warna tema */}
-        <div className="absolute -top-[10%] -left-[10%] h-[40%] w-[40%] rounded-full bg-[#2FB8A9]/10 blur-[120px]" />
-        <div className="absolute -bottom-[10%] -right-[10%] h-[40%] w-[40%] rounded-full bg-[#1F9D94]/5 blur-[120px]" />
-      </div>
-
+    <div className="flex min-h-screen flex-col bg-background">
       <main className="flex-1">{children}</main>
 
-      <footer className="border-t border-border bg-background py-8 px-6">
+      <footer className="border-t border-border bg-background py-6 px-6">
         <div className="container mx-auto text-center">
-          <p className="text-xs font-medium text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             &copy; {year}{" "}
-            <span className="text-fauget font-bold tracking-tight">
-              SIPETRA
-            </span>{" "}
-            Sistem Informasi Perpajakan Terintegrasi.
+            <span className="font-semibold text-foreground">SIPETRA</span>{" "}
+            Muhammad Mufti Harir Sihab.
           </p>
         </div>
       </footer>

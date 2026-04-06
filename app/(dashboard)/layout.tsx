@@ -10,28 +10,23 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background">
-
+    <div className="min-h-screen flex bg-background">
       {/* SIDEBAR */}
-      <Sidebar />
+      <Sidebar className="sidebar-mongo" />
 
       {/* MAIN WRAPPER */}
-      <div className="pl-64 pr-[320px] flex flex-col min-h-screen">
-        
+      <div className="flex-1 flex flex-col min-h-screen pl-64 pr-[320px]">
         {/* NAVBAR */}
-        <Navbar />
+        <Navbar className="navbar-mongo" />
 
         {/* MAIN CONTENT */}
-        <main className="flex-1 p-8">
-          {children}
-        </main>
+        <main className="flex-1 p-8 section-mongo">{children}</main>
       </div>
 
       {/* RIGHT PANEL */}
       <Suspense fallback={null}>
         <RightPanelWrapper />
       </Suspense>
-
     </div>
   );
 }
@@ -42,5 +37,7 @@ export default function DashboardLayout({
 
 async function RightPanelWrapper() {
   const session = await getSession();
-  return <RightPanel userName={session?.user?.name} />;
+  return (
+    <RightPanel userName={session?.user?.name} className="right-panel-mongo" />
+  );
 }

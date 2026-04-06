@@ -9,13 +9,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import SignOutButton from "@/components/sign-out-btn";
 
-export default function RightPanel({ userName }: { userName?: string }) {
-  return (
-    <aside className="fixed right-0 top-0 z-40 h-screen w-[320px] bg-card border-l border-border p-6 flex flex-col gap-6">
+interface RightPanelProps {
+  userName?: string;
+  className?: string;
+}
 
+export default function RightPanel({ userName, className }: RightPanelProps) {
+  return (
+    <aside
+      className={`fixed right-0 top-0 z-40 h-screen w-[320px] card-mongo p-6 flex flex-col gap-6 ${className || ""}`}
+    >
       {/* HEADER ACTION */}
       <div className="flex items-center justify-between">
-
         {/* NOTIFICATION */}
         <button className="relative p-3 rounded-2xl bg-muted hover:bg-accent transition-all">
           <Bell size={20} className="text-muted-foreground" />
@@ -26,23 +31,14 @@ export default function RightPanel({ userName }: { userName?: string }) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 group">
-
               <div className="text-right">
-                <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                <p className="text-sm font-bold text-foreground group-hover:text-[#00684A] transition-colors">
                   {userName || "User"}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Administrator
-                </p>
+                <p className="text-xs text-muted-foreground">Administrator</p>
               </div>
 
-              <div
-                className="h-10 w-10 rounded-2xl flex items-center justify-center text-white shadow-lg"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #2FB8A9, #1F9D94)",
-                }}
-              >
+              <div className="h-10 w-10 rounded-2xl flex items-center justify-center bg-mongo-green shadow-lg">
                 <UserIcon size={20} />
               </div>
             </button>
@@ -57,9 +53,7 @@ export default function RightPanel({ userName }: { userName?: string }) {
                 <p className="text-sm font-bold text-foreground">
                   {userName || "User"}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Sesi Aktif
-                </p>
+                <p className="text-xs text-muted-foreground">Sesi Aktif</p>
               </div>
             </DropdownMenuLabel>
 
@@ -71,17 +65,10 @@ export default function RightPanel({ userName }: { userName?: string }) {
 
       {/* SCHEDULE */}
       <div>
-        <h3 className="text-sm font-bold text-foreground mb-3">
-          Schedule
-        </h3>
+        <h3 className="text-sm font-bold text-foreground mb-3">Schedule</h3>
 
         <div className="flex gap-3">
-          <div
-            className="flex-1 rounded-2xl p-4 text-white shadow-lg"
-            style={{
-              background: "linear-gradient(135deg, #2FB8A9, #1F9D94)",
-            }}
-          >
+          <div className="flex-1 rounded-2xl p-4 text-white shadow-lg bg-mongo-green">
             <p className="text-xs opacity-80">2026</p>
             <p className="text-2xl font-black">20</p>
             <p className="text-xs">Meeting</p>
@@ -96,23 +83,13 @@ export default function RightPanel({ userName }: { userName?: string }) {
 
       {/* MESSAGE */}
       <div>
-        <h3 className="text-sm font-bold text-foreground mb-3">
-          Message
-        </h3>
+        <h3 className="text-sm font-bold text-foreground mb-3">Message</h3>
 
-        <div
-          className="rounded-2xl p-4 text-white shadow-md"
-          style={{
-            background: "linear-gradient(135deg, #2FB8A9, #1F9D94)",
-          }}
-        >
+        <div className="rounded-2xl p-4 text-white shadow-md bg-mongo-green">
           <p className="text-sm font-bold">System</p>
-          <p className="text-xs opacity-90 mt-1">
-            Task berhasil diperbarui
-          </p>
+          <p className="text-xs opacity-90 mt-1">Task berhasil diperbarui</p>
         </div>
       </div>
-
     </aside>
   );
 }

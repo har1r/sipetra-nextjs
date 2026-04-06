@@ -1,8 +1,6 @@
 "use client";
 
-import { FileText } from "lucide-react";
 import Link from "next/link";
-import { Button } from "./ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,111 +15,99 @@ export default function Header() {
   const { data: session } = useSession();
 
   return (
-    <nav className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-md">
-      <div className="container mx-auto flex h-20 items-center px-6 justify-between">
-        {/* Brand */}
-        <Link
-          href="/"
-          className="flex items-center gap-3 transition-transform hover:scale-105 active:scale-95"
-        >
-          <div className="flex items-center gap-[7px]">
-            <span className="text-2xl font-black tracking-tight">SIPETR</span>
-            <div className="relative w-6 h-6">
-              <div className="absolute left-0 top-[-3px] w-0.5 h-full bg-primary rotate-12 origin-top"></div>
-              <div className="absolute left-1 top-2 w-0.5 h-3 bg-primary rotate-12 origin-top"></div>
-              <div className="absolute left-2 top-2 w-0.5 h-3 bg-primary rotate-12 origin-top"></div>
-              <div className="absolute right-2 top-2 w-0.5 h-full bg-primary rotate-12 origin-top"></div>
-            </div>
-          </div>
-        </Link>
+    <nav className="fixed top-0 z-50 w-full border-b border-border bg-background">
+      <div className="container mx-auto flex h-14 items-center px-6 justify-between">
+        {/* ===== BRAND ===== */}
+        <div className="flex items-center gap-2">
+          {/* TEXT */}
+          <span className="text-base font-semibold tracking-tight text-foreground">
+            SIPETR
+          </span>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 md:gap-4">
+          {/* ICON */}
+          <div className="relative h-5 w-5">
+            <div className="absolute left-0 top-[-3px] h-full w-px bg-primary/80 rotate-12 origin-top" />
+            <div className="absolute left-[1.5px] top-1.5 h-2.5 w-px bg-primary/60 rotate-12 origin-top" />
+            <div className="absolute left-[3px] top-1.5 h-2.5 w-px bg-primary/60 rotate-12 origin-top" />
+            <div className="absolute right-[13px] top-1.5 h-full w-px bg-primary/80 rotate-12 origin-top" />
+          </div>
+        </div>
+
+        {/* ===== ACTIONS ===== */}
+        <div className="flex items-center gap-3">
           {session?.user ? (
             <>
-              {/* Dashboard Button */}
+              {/* Dashboard */}
               <Link href="/dashboard" className="hidden sm:block">
-                <Button
-                  variant="ghost"
-                  className="text-sm font-extrabold text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl px-5 transition-all"
-                >
+                <button className="text-sm text-muted-foreground hover:text-foreground transition">
                   Dashboard
-                </Button>
+                </button>
               </Link>
 
               {/* Avatar */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="relative h-11 w-11 rounded-2xl border border-border bg-card p-0 hover:bg-muted transition-all shadow-sm"
-                  >
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback
-                        className="text-white text-xs font-black"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, #2FB8A9, #1F9D94)",
-                        }}
-                      >
+                  <button className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-card hover:bg-muted transition">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-xs font-medium text-foreground bg-muted">
                         {session.user.name?.[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                  </Button>
+                  </button>
                 </DropdownMenuTrigger>
 
                 {/* Dropdown */}
                 <DropdownMenuContent
-                  className="w-64 rounded-3xl border border-border bg-card p-3 shadow-2xl shadow-black/5"
                   align="end"
-                  sideOffset={12}
+                  sideOffset={8}
+                  className="w-56 border border-border bg-card rounded-md p-1"
                 >
-                  <DropdownMenuLabel className="font-normal px-3 py-3">
-                    <div className="flex flex-col space-y-1.5">
-                      <p className="text-sm font-black leading-none text-foreground">
+                  <DropdownMenuLabel className="px-3 py-2">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-foreground">
                         {session.user.name}
-                      </p>
-                      <p className="text-[12px] leading-none text-muted-foreground font-bold">
+                      </span>
+                      <span className="text-xs text-muted-foreground">
                         {session.user.email}
-                      </p>
+                      </span>
                     </div>
                   </DropdownMenuLabel>
 
-                  <div className="h-px bg-border my-2 mx-1" />
+                  <div className="h-px bg-border my-1" />
 
-                  <div className="p-1">
+                  <div className="px-1 py-1">
                     <SignOutButton />
                   </div>
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
           ) : (
-            <div className="flex items-center gap-2">
+            <>
               {/* Login */}
               <Link href="/sign-in">
-                <Button
-                  variant="ghost"
-                  className="text-sm font-extrabold text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl px-6 transition-all"
-                >
+                <button className="text-sm text-muted-foreground hover:text-foreground transition">
                   Masuk
-                </Button>
+                </button>
               </Link>
 
               {/* Register */}
               <Link href="/sign-up">
-                <Button
-                  className="rounded-2xl px-8 h-11 text-sm font-black text-white shadow-lg transition-all hover:-translate-y-0.5 active:scale-95 border-0"
-                  style={{
-                    background: "linear-gradient(135deg, #2FB8A9, #1F9D94)",
-                  }}
-                >
-                  Daftar
-                </Button>
+                <button className="btn-mongo text-sm px-4 py-2">Daftar</button>
               </Link>
-            </div>
+            </>
           )}
         </div>
       </div>
     </nav>
   );
+}
+
+{
+  /* <span className="text-2xl font-black tracking-tight">SIPETR</span>
+            <div className="relative w-6 h-6">
+              <div className="absolute left-0 top-[-3px] w-0.5 h-full bg-primary rotate-12 origin-top"></div>
+              <div className="absolute left-1 top-2 w-0.5 h-3 bg-primary rotate-12 origin-top"></div>
+              <div className="absolute left-2 top-2 w-0.5 h-3 bg-primary rotate-12 origin-top"></div>
+              <div className="absolute right-2 top-2 w-0.5 h-full bg-primary rotate-12 origin-top"></div>
+</div> */
 }

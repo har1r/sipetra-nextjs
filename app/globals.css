@@ -3,11 +3,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* =========================
+   THEME MAPPING (TAILWIND)
+========================= */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 
   --color-border: var(--border);
   --color-input: var(--input);
@@ -28,68 +32,83 @@
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
 
-  --radius: 0.75rem;
-  --radius-4xl: 2rem;
+  --radius: 0.5rem;
+  --radius-4xl: 1.5rem;
 }
 
+/* =========================
+   ROOT (LIGHT MODE)
+========================= */
 :root {
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 
-  /* BASE - Background putih bersih khas Clean Tech */
-  --background: oklch(0.99 0.005 170);
-  --foreground: oklch(0.25 0.02 170);
+  /* ===== BACKGROUND ===== */
+  --background: #f9fbfa;
+  --foreground: #001e2b;
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.25 0.02 170);
+  /* ===== PRIMARY (MongoDB GREEN) ===== */
+  --primary: #00684a;
+  --primary-foreground: #001e2b;
 
-  /* PRIMARY - Dasar warna tetap Emerald Soft */
-  --primary: oklch(0.72 0.14 170);
-  --primary-foreground: oklch(0.99 0 0);
+  /* ===== SECONDARY / NEUTRAL ===== */
+  --secondary: #e8edeb;
+  --secondary-foreground: #1c2d38;
 
-  /* SECONDARY & MUTED */
-  --secondary: oklch(0.96 0.02 170);
-  --secondary-foreground: oklch(0.35 0.08 170);
-  --muted: oklch(0.97 0.01 170);
-  --muted-foreground: oklch(0.5 0.04 170);
+  /* ===== BORDER & INPUT ===== */
+  --border: #e8edeb;
+  --input: #e8edeb;
 
-  /* BORDER & FOCUS */
-  --border: oklch(0.94 0.015 170);
-  --input: oklch(0.94 0.015 170);
-  --ring: #2FB8A9; /* Menggunakan start color gradient untuk focus ring */
+  /* ===== MUTED ===== */
+  --muted: #f4f6f6;
+  --muted-foreground: #5c6c75;
 
-  --destructive: oklch(0.58 0.22 25);
+  /* ===== CARD ===== */
+  --card: #ffffff;
+  --card-foreground: #001e2b;
+
+  /* ===== ACCENT ===== */
+  --accent: #016bf8;
+  --accent-foreground: #ffffff;
+
+  /* ===== RING ===== */
+  --ring: rgba(1, 107, 248, 1);
+
+  /* ===== FONT ===== */
+  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: monospace;
 }
 
+/* =========================
+   DARK MODE (Mongo Style)
+========================= */
 .dark {
-  --background: oklch(0.17 0.02 170);
-  --foreground: oklch(0.98 0 0);
-  --card: oklch(0.2 0.02 170);
-  --primary: oklch(0.75 0.12 170);
-  --ring: #1F9D94;
+  --background: #0b1f2a;
+  --foreground: #e8edeb;
+
+  --card: #112733;
+  --card-foreground: #e8edeb;
+
+  --primary: #00684a;
+  --primary-foreground: #001e2b;
+
+  --secondary: #1c2d38;
+  --secondary-foreground: #c1c7c6;
+
+  --border: #1c2d38;
+  --input: #1c2d38;
+
+  --muted: #112733;
+  --muted-foreground: #889397;
+
+  --accent: #016bf8;
+  --accent-foreground: #ffffff;
+
+  --ring: rgba(0, 237, 100, 0.5);
 }
 
-/* --- CUSTOM GRADIENT UTILITIES --- */
-@layer utilities {
-  /* Untuk Background Tombol/Card */
-  .bg-fauget {
-    background: linear-gradient(135deg, #2FB8A9 0%, #1F9D94 100%);
-  }
-
-  /* Untuk Teks (Heading/Highlight) */
-  .text-fauget {
-    background: linear-gradient(135deg, #2FB8A9 0%, #1F9D94 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    display: inline-block;
-  }
-
-  /* Hover effect yang lebih deep */
-  .hover-fauget:hover {
-    background: linear-gradient(135deg, #1F9D94 0%, #187D76 100%);
-  }
-}
-
+/* =========================
+   BASE STYLE
+========================= */
 @layer base {
   * {
     @apply border-border outline-ring/30;
@@ -97,5 +116,121 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: #00684a;
+    font-weight: 600;
+  }
+}
+
+/* =========================
+   COMPONENT STYLE (MONGODB FEEL)
+========================= */
+@layer components {
+  /* CARD (NO SHADOW, ONLY BORDER) */
+  .card-mongo {
+    @apply bg-card border border-border rounded-lg;
+  }
+
+  /* SECTION CONTAINER */
+  .section-mongo {
+    @apply bg-card border border-border p-6;
+  }
+
+  /* BUTTON PRIMARY */
+  .btn-mongo {
+    @apply bg-primary text-white font-medium px-4 py-2 rounded-md transition;
+  }
+
+  .btn-mongo:hover {
+    background-color: #00a35c;
+  }
+
+  /* BUTTON SECONDARY */
+  .btn-mongo-secondary {
+    @apply bg-secondary text-foreground px-4 py-2 rounded-md border border-border;
+  }
+
+  .btn-mongo-secondary:hover {
+    background-color: #f4f6f6;
+  }
+
+  /* INPUT */
+  .input-mongo {
+    @apply bg-white border border-border rounded-md px-3 py-2 text-sm;
+  }
+
+  .input-mongo:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ring);
+  }
+
+  /* TABLE STYLE */
+  .table-mongo {
+    @apply w-full text-sm border-collapse;
+  }
+
+  .table-mongo th {
+    @apply text-left text-muted-foreground font-medium border-b border-border py-2;
+  }
+
+  .table-mongo td {
+    @apply border-b border-border py-2;
+  }
+
+  /* SIDEBAR */
+  .sidebar-mongo {
+    @apply bg-white border-r border-border;
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer;
+  }
+
+  .sidebar-item:hover {
+    @apply bg-muted;
+  }
+
+  .sidebar-item.active {
+    @apply bg-muted font-medium;
+  }
+
+  .bg-mongo-green {
+    background-color: #00684a;
+    color: white; /* biar teks/ikon kontras */
+  }
+}
+
+/* =========================
+   NAVBAR
+========================= */
+.navbar-mongo {
+  @apply flex items-center justify-between bg-card border-b border-border px-6 h-16;
+}
+
+/* RIGHT PANEL */
+.right-panel-mongo {
+  @apply w-80 bg-card border-l border-border p-6 flex flex-col;
+}
+
+/* =========================
+   UTILITIES
+========================= */
+@layer utilities {
+  /* REMOVE SHADOW BIAS */
+  .no-shadow {
+    box-shadow: none !important;
+  }
+
+  /* MONGO HOVER */
+  .hover-mongo:hover {
+    background-color: #f4f6f6;
   }
 }
