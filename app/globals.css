@@ -4,119 +4,62 @@
 @custom-variant dark (&:is(.dark *));
 
 /* =========================
-   THEME MAPPING (TAILWIND)
+   1. SHARED THEME VARIABLES
 ========================= */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
-
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-
+  --color-border: var(--border);
+  --color-card: var(--card);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-
   --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+  --color-ring: var(--ring);
 
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-
-  --radius: 0.5rem;
-  --radius-4xl: 1.5rem;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --radius-mongo: 0.5rem;
 }
 
-/* =========================
-   ROOT (LIGHT MODE)
-========================= */
 :root {
-  --radius: 0.5rem;
-
-  /* ===== BACKGROUND ===== */
   --background: #f9fbfa;
   --foreground: #001e2b;
-
-  /* ===== PRIMARY (MongoDB GREEN) ===== */
   --primary: #00684a;
-  --primary-foreground: #001e2b;
-
-  /* ===== SECONDARY / NEUTRAL ===== */
-  --secondary: #e8edeb;
-  --secondary-foreground: #1c2d38;
-
-  /* ===== BORDER & INPUT ===== */
+  --primary-foreground: #ffffff;
   --border: #e8edeb;
-  --input: #e8edeb;
-
-  /* ===== MUTED ===== */
+  --card: #ffffff;
   --muted: #f4f6f6;
   --muted-foreground: #5c6c75;
-
-  /* ===== CARD ===== */
-  --card: #ffffff;
-  --card-foreground: #001e2b;
-
-  /* ===== ACCENT ===== */
   --accent: #016bf8;
-  --accent-foreground: #ffffff;
-
-  /* ===== RING ===== */
   --ring: rgba(1, 107, 248, 1);
-
-  /* ===== FONT ===== */
-  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: monospace;
 }
 
-/* =========================
-   DARK MODE (Mongo Style)
-========================= */
 .dark {
   --background: #0b1f2a;
   --foreground: #e8edeb;
-
   --card: #112733;
-  --card-foreground: #e8edeb;
-
-  --primary: #00684a;
-  --primary-foreground: #001e2b;
-
-  --secondary: #1c2d38;
-  --secondary-foreground: #c1c7c6;
-
   --border: #1c2d38;
-  --input: #1c2d38;
-
   --muted: #112733;
   --muted-foreground: #889397;
-
-  --accent: #016bf8;
-  --accent-foreground: #ffffff;
-
   --ring: rgba(0, 237, 100, 0.5);
 }
 
-::selection {
-  background-color: var(--accent);
-  color: var(--accent-foreground);
-}
-
 /* =========================
-   BASE STYLE
+   2. BASE SYSTEM
 ========================= */
 @layer base {
   * {
     @apply border-border outline-ring/30;
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    /* Menghapus overflow-hidden agar halaman Home bisa scroll */
+    @apply min-h-full;
+    margin: 0;
+    padding: 0;
   }
 
   body {
@@ -130,26 +73,20 @@
   h2,
   h3,
   h4 {
-    color: #00684a;
-    font-weight: 600;
+    @apply font-semibold;
+    color: var(--primary);
   }
 }
 
+::selection {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
 /* =========================
-   COMPONENT STYLE (MONGODB FEEL)
+   3. COMPONENTS
 ========================= */
 @layer components {
-  /* CARD (NO SHADOW, ONLY BORDER) */
-  .card-mongo {
-    @apply bg-card border border-border rounded-lg;
-  }
-
-  /* SECTION CONTAINER */
-  .section-mongo {
-    @apply bg-card border border-border p-6;
-  }
-
-  /* BUTTON PRIMARY */
   .btn-mongo {
     @apply bg-primary text-white font-medium px-4 py-2 rounded-md transition;
   }
@@ -158,84 +95,23 @@
     background-color: #00a35c;
   }
 
-  /* BUTTON SECONDARY */
-  .btn-mongo-secondary {
-    @apply bg-secondary text-foreground px-4 py-2 rounded-md border border-border;
+  .card-mongo {
+    @apply bg-card border border-border rounded-lg;
   }
 
-  .btn-mongo-secondary:hover {
-    background-color: #f4f6f6;
-  }
-
-  /* INPUT */
-  .input-mongo {
-    @apply bg-white border border-border rounded-md px-3 py-2 text-sm;
-  }
-
-  .input-mongo:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px var(--ring);
-  }
-
-  /* TABLE STYLE */
-  .table-mongo {
-    @apply w-full text-sm border-collapse;
-  }
-
-  .table-mongo th {
-    @apply text-left text-muted-foreground font-medium border-b border-border py-2;
-  }
-
-  .table-mongo td {
-    @apply border-b border-border py-2;
-  }
-
-  /* SIDEBAR */
-  .sidebar-mongo {
-    @apply bg-white border-r border-border;
-  }
-
-  .sidebar-item {
-    @apply flex items-center gap-2 px-3 py-2 rounded-md text-sm cursor-pointer;
-  }
-
-  .sidebar-item:hover {
-    @apply bg-muted;
-  }
-
-  .sidebar-item.active {
-    @apply bg-muted font-medium;
-  }
-
-  .bg-mongo-green {
-    background-color: #00684a;
-    color: white; /* biar teks/ikon kontras */
+  .section-mongo {
+    @apply bg-card border border-border p-6;
   }
 }
 
 /* =========================
-   NAVBAR
-========================= */
-.navbar-mongo {
-  @apply flex items-center justify-between bg-card border-b border-border px-6 h-16;
-}
-
-/* RIGHT PANEL */
-.right-panel-mongo {
-  @apply w-80 bg-card border-l border-border p-6 flex flex-col;
-}
-
-/* =========================
-   UTILITIES
+   3. UNIVERSAL UTILITIES
 ========================= */
 @layer utilities {
-  /* REMOVE SHADOW BIAS */
-  .no-shadow {
-    box-shadow: none !important;
+  .text-mongo-green {
+    color: #00684a;
   }
-
-  /* MONGO HOVER */
-  .hover-mongo:hover {
-    background-color: #f4f6f6;
+  .bg-mongo-green {
+    background-color: #00684a;
   }
 }

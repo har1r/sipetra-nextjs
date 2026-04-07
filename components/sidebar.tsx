@@ -31,50 +31,28 @@ export default function Sidebar({ className }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card ${className || ""}`}
+      className={`w-64 border-r border-border bg-card flex flex-col ${className}`}
     >
       <div className="flex h-full flex-col px-4 py-6">
-        {/* LOGO */}
         <div className="mb-10 px-2 flex items-center gap-2">
-          <span className="text-2xl font-black tracking-tight text-foreground">
+          <span className="text-xl lg:text-2xl font-black tracking-tight text-foreground">
             SIPETRA
           </span>
-          {/* Logo dekorasi tetap di sini */}
         </div>
 
-        {/* MENU */}
-        <ul className="space-y-2 flex-1">
-          {menuItems.map((item) => {
-            // 3. Logika pengecekan aktif:
-            // Menggunakan startsWith agar sub-route (misal /manage-task/update/1) tetap aktif
-            const isActive =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-            return (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className={`sidebar-item flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                    isActive
-                      ? "active bg-primary/10 text-primary font-medium"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                >
-                  <span
-                    className={
-                      isActive ? "text-primary" : "text-muted-foreground"
-                    }
-                  >
-                    {item.icon}
-                  </span>
-                  {item.name}
-                </Link>
-              </li>
-            );
-          })}
+        <ul className="space-y-1.5 flex-1 overflow-y-auto no-scrollbar">
+          {menuItems.map((item) => (
+            <li key={item.name}>
+              <Link
+                href={item.href}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${pathname.startsWith(item.href) ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:bg-muted"}`}
+              >
+                {item.icon} {item.name}
+              </Link>
+            </li>
+          ))}
         </ul>
-
-        {/* FOOTER */}
+        {/* Footer Settings */}
         <div className="pt-4 border-t border-border">
           <Link
             href="/settings"

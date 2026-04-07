@@ -49,7 +49,7 @@ type Task = {
   updatedAt: string;
 };
 
-export default function ManageTasksTable() {
+export default function ManageTask() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 

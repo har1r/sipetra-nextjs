@@ -7,7 +7,8 @@ import Header from "@/components/header";
 
 export default function Home() {
   return (
-    <main className="flex-1 bg-background">
+    /* Menambahkan min-h-screen agar background konsisten dan bisa discroll */
+    <main className="flex-1 bg-background min-h-screen overflow-y-auto">
       <Header />
 
       {/* HERO */}

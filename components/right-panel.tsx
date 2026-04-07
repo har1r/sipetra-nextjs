@@ -17,17 +17,13 @@ interface RightPanelProps {
 export default function RightPanel({ userName, className }: RightPanelProps) {
   return (
     <aside
-      className={`fixed right-0 top-0 z-40 h-screen w-[320px] card-mongo p-6 flex flex-col gap-6 ${className || ""}`}
+      className={`flex flex-col gap-6 p-6 h-full overflow-y-auto no-scrollbar ${className}`}
     >
-      {/* HEADER ACTION */}
-      <div className="flex items-center justify-between">
-        {/* NOTIFICATION */}
-        <button className="relative p-3 rounded-2xl bg-muted hover:bg-accent transition-all">
-          <Bell size={20} className="text-muted-foreground" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary"></span>
+      <div className="flex items-center justify-between gap-4">
+        <button className="p-2.5 rounded-xl bg-muted hover:bg-accent/10 transition-all shrink-0">
+          <Bell size={18} />
         </button>
 
-        {/* USER DROPDOWN */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 group">
@@ -43,7 +39,6 @@ export default function RightPanel({ userName, className }: RightPanelProps) {
               </div>
             </button>
           </DropdownMenuTrigger>
-
           <DropdownMenuContent
             className="w-56 rounded-2xl border border-border bg-card p-2 shadow-xl"
             align="end"
@@ -62,7 +57,6 @@ export default function RightPanel({ userName, className }: RightPanelProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-
       {/* SCHEDULE */}
       <div>
         <h3 className="text-sm font-bold text-foreground mb-3">Schedule</h3>
@@ -82,6 +76,14 @@ export default function RightPanel({ userName, className }: RightPanelProps) {
       </div>
 
       {/* MESSAGE */}
+      <div>
+        <h3 className="text-sm font-bold text-foreground mb-3">Message</h3>
+
+        <div className="rounded-2xl p-4 text-white shadow-md bg-mongo-green">
+          <p className="text-sm font-bold">System</p>
+          <p className="text-xs opacity-90 mt-1">Task berhasil diperbarui</p>
+        </div>
+      </div>
       <div>
         <h3 className="text-sm font-bold text-foreground mb-3">Message</h3>
 

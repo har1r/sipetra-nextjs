@@ -1,7 +1,10 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Trash2,
@@ -11,14 +14,12 @@ import {
   MapPin,
   AlertCircle,
   Link as LinkIcon,
-  ArrowLeft,
-  RotateCcw,
+  Loader2,
+  XCircle,
 } from "lucide-react";
-import Link from "next/link";
 
 // --- Types ---
 type TaskFormData = {
-  _id?: string;
   serviceType: string;
   nopel: string;
   nop: string;
@@ -56,29 +57,32 @@ type TaskFormData = {
   }[];
 };
 
-interface UpdateTaskProps {
-  initialData: TaskFormData;
-}
-
-export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
+export default function CreateTask() {
   const [activeTab, setActiveTab] = useState("info");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const router = useRouter();
 
   const {
     register,
     control,
     handleSubmit,
+    watch,
     reset,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm<TaskFormData>({
-    defaultValues: initialData,
+    defaultValues: {
+      serviceType: "pengaktifan",
+      currentStage: "penginputan",
+      requestedData: {
+        taxObjectAddress: "",
+        taxObjectVillage: "",
+        taxObjectSubdistrict: "",
+      },
+      requestedChanges: [],
+      attachments: [{ driveLink: "", linkName: "" }],
+    },
   });
-
-  // Memastikan form terupdate jika initialData berubah (misal fetch dari server)
-  useEffect(() => {
-    if (initialData) {
-      reset(initialData);
-    }
-  }, [initialData, reset]);
 
   const {
     fields: reqFields,
@@ -98,50 +102,110 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
     name: "attachments",
   });
 
+  // --- LOGIKA AUTO-SAVE & PERSISTENCE ---
+  useEffect(() => {
+    const savedData = localStorage.getItem("sipetra_form_cache");
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        reset(parsed);
+      } catch (e) {
+        console.error("Gagal load cache form:", e);
+      }
+    }
+    setIsHydrated(true);
+  }, [reset]);
+
+  const allFields = watch();
+  useEffect(() => {
+    if (isHydrated) {
+      localStorage.setItem("sipetra_form_cache", JSON.stringify(allFields));
+    }
+  }, [allFields, isHydrated]);
+
+  // --- LOGIKA BATAL / RESET ---
+  const handleCancel = () => {
+    localStorage.removeItem("sipetra_form_cache");
+    reset({
+      serviceType: "pengaktifan",
+      nopel: "",
+      nop: "",
+      baseData: {
+        taxpayerName: "",
+        taxpayerAddress: "",
+        taxpayerVillage: "",
+        taxpayerSubdistrict: "",
+        taxObjectAddress: "",
+        taxObjectVillage: "",
+        taxObjectSubdistrict: "",
+        landArea: 0,
+        buildingArea: 0,
+      },
+      requestedData: {
+        taxObjectAddress: "",
+        taxObjectVillage: "",
+        taxObjectSubdistrict: "",
+      },
+      currentStage: "penginputan",
+      requestedChanges: [],
+      attachments: [{ driveLink: "", linkName: "" }],
+    });
+    setActiveTab("info");
+  };
+
+  // --- SUBMIT HANDLER ---
   const onSubmit = async (data: TaskFormData) => {
+    setIsLoading(true);
     try {
-      console.log("Updating Data Sipetra:", data);
-      // Implementasi API Update (misal: fetch/axios PATCH) di sini
-      alert("Perubahan data berhasil disimpan ke server!");
-    } catch (error) {
-      alert("Gagal memperbarui data.");
+      const response = await fetch("/api/task", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Gagal mengirim data");
+      }
+
+      handleCancel(); // Clear form & cache setelah submit sukses
+
+      alert("Sukses! " + result.message);
+      router.push("/dashboard");
+      router.refresh();
+    } catch (error: any) {
+      console.error("SUBMIT_ERROR:", error);
+      alert("Error: " + error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const labelStyle =
     "block text-xs font-semibold text-muted-foreground mb-1.5 ml-1 capitalize tracking-wider";
   const inputStyle =
-    "input-mongo w-full focus:ring-2 focus:ring-ring transition-all";
+    "input-mongo w-full focus:ring-2 focus:ring-ring transition-all disabled:opacity-50";
+
+  if (!isHydrated) return null;
 
   return (
     <div className="max-w-6xl mx-auto p-6 md:p-12 min-h-screen bg-background">
       {/* HEADER SECTION */}
       <div className="mb-10">
-        <Link
-          href="/dashboard/tasks"
-          className="flex items-center text-sm text-muted-foreground hover:text-primary mb-4 transition-colors w-fit"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" /> Kembali ke Daftar
-        </Link>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-primary">
-              Update Data Pelayanan
-            </h1>
-          </div>
-          {isDirty && (
-            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1.5 rounded-lg animate-in fade-in zoom-in duration-300">
-              <AlertCircle className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-tighter">
-                Ada perubahan belum disimpan
-              </span>
-            </div>
-          )}
-        </div>
+        <h1 className="text-3xl font-semibold tracking-tight text-primary">
+          Form Pengajuan Pelayanan
+        </h1>
+        <p className="text-muted-foreground text-sm mt-2">
+          Lengkapi semua informasi dengan benar untuk mempercepat proses
+          pelayanan wajib pajak Anda.
+        </p>
       </div>
 
       {/* TABS NAVIGATION */}
-      <div className="flex space-x-2 bg-muted p-2 rounded-xl mb-8 overflow-x-auto no-scrollbar border border-border shadow-sm">
+      <div className="flex space-x-2 bg-muted p-2 rounded-xl mb-8 overflow-x-auto no-scrollbar border border-border">
         {[
           { id: "info", label: "Informasi Utama", icon: FileText },
           { id: "base", label: "Data SPPT Lama", icon: User },
@@ -151,9 +215,11 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
           <button
             key={tab.id}
             type="button"
+            disabled={isLoading}
             onClick={() => setActiveTab(tab.id)}
             className={`sidebar-item min-w-[160px] justify-center py-2.5 transition-all
-              ${activeTab === tab.id ? "active bg-card shadow-sm border border-border" : ""}`}
+              ${activeTab === tab.id ? "active bg-card shadow-sm border border-border" : ""} 
+              ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <tab.icon
               className={`w-4 h-4 mr-2 ${activeTab === tab.id ? "text-primary" : "text-muted-foreground"}`}
@@ -173,7 +239,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500"
+        className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500"
       >
         {/* SECTION 1: INFORMASI UTAMA */}
         {activeTab === "info" && (
@@ -190,7 +256,11 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className={labelStyle}>Jenis Layanan</label>
-                  <select {...register("serviceType")} className={inputStyle}>
+                  <select
+                    {...register("serviceType")}
+                    className={inputStyle}
+                    disabled={isLoading}
+                  >
                     <option value="pengaktifan">Pengaktifan</option>
                     <option value="mutasi habis update">
                       Mutasi Habis Update
@@ -204,28 +274,32 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                   <label className={labelStyle}>Nomor Pelayanan (NOPEL)</label>
                   <input
                     type="text"
-                    {...register("nopel")}
-                    className={`${inputStyle} bg-muted/50 cursor-not-allowed font-mono`}
-                    readOnly
+                    {...register("nopel", { required: "Nopel wajib diisi" })}
+                    className={`${inputStyle} ${errors.nopel ? "border-red-500" : ""}`}
+                    disabled={isLoading}
                   />
+                  {errors.nopel && (
+                    <span className="text-[10px] text-red-500 mt-1 ml-1">
+                      {errors.nopel.message}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="md:col-span-1">
-                <label className={labelStyle}>Nomor Objek Pajak (NOP)</label>
+                <label className={labelStyle}>
+                  Nomor Objek Pajak (18 Digit)
+                </label>
                 <input
                   type="text"
-                  {...register("nop", { required: true })}
-                  className={inputStyle}
+                  {...register("nop", { required: "NOP wajib diisi" })}
+                  className={`${inputStyle} ${errors.nop ? "border-red-500" : ""}`}
+                  disabled={isLoading}
                 />
-              </div>
-              <div className="md:col-span-1">
-                <label className={labelStyle}>Tahapan Proses</label>
-                <input
-                  type="text"
-                  {...register("currentStage")}
-                  className={`${inputStyle} bg-muted/50`}
-                  readOnly
-                />
+                {errors.nop && (
+                  <span className="text-[10px] text-red-500 mt-1 ml-1">
+                    {errors.nop.message}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -244,6 +318,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                   <input
                     {...register("baseData.taxpayerName")}
                     className={inputStyle}
+                    disabled={isLoading}
                   />
                 </div>
                 <div>
@@ -251,6 +326,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                   <input
                     {...register("baseData.taxpayerAddress")}
                     className={inputStyle}
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -259,6 +335,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                     <input
                       {...register("baseData.taxpayerVillage")}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                   <div>
@@ -266,6 +343,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                     <input
                       {...register("baseData.taxpayerSubdistrict")}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -283,16 +361,22 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                     <label className={labelStyle}>Luas Tanah (m²)</label>
                     <input
                       type="number"
-                      {...register("baseData.landArea")}
+                      {...register("baseData.landArea", {
+                        valueAsNumber: true,
+                      })}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                   <div>
                     <label className={labelStyle}>Luas Bangunan (m²)</label>
                     <input
                       type="number"
-                      {...register("baseData.buildingArea")}
+                      {...register("baseData.buildingArea", {
+                        valueAsNumber: true,
+                      })}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -301,6 +385,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                   <input
                     {...register("baseData.taxObjectAddress")}
                     className={inputStyle}
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -309,6 +394,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                     <input
                       {...register("baseData.taxObjectVillage")}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                   <div>
@@ -316,6 +402,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                     <input
                       {...register("baseData.taxObjectSubdistrict")}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -327,16 +414,17 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
         {/* SECTION 3: REQUESTED DATA & CHANGES (Baru) */}
         {activeTab === "changes" && (
           <div className="space-y-8">
-            <div className="section-mongo !border-l-4 !border-l-amber-500">
+            <div className="section-mongo !border-l-4 !border-l-primary">
               <h3 className="text-lg font-semibold mb-6 text-foreground">
                 Lokasi Objek Pajak Baru
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-1">
+                <div>
                   <label className={labelStyle}>Alamat Letak Objek</label>
                   <input
                     {...register("requestedData.taxObjectAddress")}
                     className={inputStyle}
+                    disabled={isLoading}
                   />
                 </div>
                 <div>
@@ -344,6 +432,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                   <input
                     {...register("requestedData.taxObjectVillage")}
                     className={inputStyle}
+                    disabled={isLoading}
                   />
                 </div>
                 <div>
@@ -351,6 +440,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                   <input
                     {...register("requestedData.taxObjectSubdistrict")}
                     className={inputStyle}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -363,11 +453,12 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                     Rincian Perubahan
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Sesuai bukti kepemilikan terbaru
+                    Sesuai data sertifikat terbaru
                   </p>
                 </div>
                 <button
                   type="button"
+                  disabled={isLoading}
                   onClick={() =>
                     appendReq({
                       taxpayerName: "",
@@ -380,7 +471,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                       status: "in_progress",
                     })
                   }
-                  className="btn-mongo flex items-center text-xs"
+                  className="btn-mongo flex items-center text-xs disabled:opacity-50"
                 >
                   <Plus className="w-4 h-4 mr-1.5" /> Tambah Item
                 </button>
@@ -390,12 +481,13 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                 {reqFields.map((field, index) => (
                   <div
                     key={field.id}
-                    className="card-mongo p-6 relative group hover:border-amber-200 transition-colors"
+                    className="card-mongo p-6 relative group hover-mongo transition-colors"
                   >
                     <button
                       type="button"
+                      disabled={isLoading}
                       onClick={() => removeReq(index)}
-                      className="absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-md z-10"
+                      className="absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-md disabled:hidden"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -408,6 +500,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                             `requestedChanges.${index}.taxpayerName`,
                           )}
                           className={inputStyle}
+                          disabled={isLoading}
                         />
                       </div>
                       <div className="md:col-span-2">
@@ -415,6 +508,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                         <input
                           {...register(`requestedChanges.${index}.certificate`)}
                           className={inputStyle}
+                          disabled={isLoading}
                         />
                       </div>
                       <div className="md:col-span-2">
@@ -426,6 +520,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                             `requestedChanges.${index}.taxpayerAddress`,
                           )}
                           className={inputStyle}
+                          disabled={isLoading}
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-3 md:col-span-2">
@@ -436,6 +531,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                               `requestedChanges.${index}.taxpayerVillage`,
                             )}
                             className={inputStyle}
+                            disabled={isLoading}
                           />
                         </div>
                         <div>
@@ -445,6 +541,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                               `requestedChanges.${index}.taxpayerSubdistrict`,
                             )}
                             className={inputStyle}
+                            disabled={isLoading}
                           />
                         </div>
                       </div>
@@ -452,8 +549,11 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                         <label className={labelStyle}>Luas Tanah (m²)</label>
                         <input
                           type="number"
-                          {...register(`requestedChanges.${index}.landArea`)}
+                          {...register(`requestedChanges.${index}.landArea`, {
+                            valueAsNumber: true,
+                          })}
                           className={inputStyle}
+                          disabled={isLoading}
                         />
                       </div>
                       <div className="md:col-span-2">
@@ -462,13 +562,22 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                           type="number"
                           {...register(
                             `requestedChanges.${index}.buildingArea`,
+                            { valueAsNumber: true },
                           )}
                           className={inputStyle}
+                          disabled={isLoading}
                         />
                       </div>
                     </div>
                   </div>
                 ))}
+                {reqFields.length === 0 && (
+                  <div className="py-12 border-2 border-dashed border-border rounded-xl text-center bg-muted/30">
+                    <p className="text-muted-foreground text-sm font-medium">
+                      Belum ada rincian perubahan.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -493,6 +602,7 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                       placeholder="Contoh: Scan KTP"
                       {...register(`attachments.${index}.linkName`)}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                   <div className="flex-[2] w-full">
@@ -501,12 +611,14 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
                       placeholder="https://drive.google.com/..."
                       {...register(`attachments.${index}.driveLink`)}
                       className={inputStyle}
+                      disabled={isLoading}
                     />
                   </div>
                   <button
                     type="button"
+                    disabled={isLoading}
                     onClick={() => removeAttach(index)}
-                    className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors mb-0.5"
+                    className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors mb-0.5 disabled:opacity-30"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -514,8 +626,9 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
               ))}
               <button
                 type="button"
+                disabled={isLoading}
                 onClick={() => appendAttach({ driveLink: "", linkName: "" })}
-                className="w-full py-6 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:text-primary hover:border-primary transition-all flex items-center justify-center gap-2 text-sm font-semibold"
+                className="w-full py-6 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:text-primary hover:border-primary transition-all flex items-center justify-center gap-2 text-sm font-semibold disabled:opacity-50"
               >
                 <Plus className="w-4 h-4" /> Tambah Tautan Berkas Baru
               </button>
@@ -527,17 +640,28 @@ export default function UpdateTaskForm({ initialData }: UpdateTaskProps) {
         <div className="flex flex-col md:flex-row justify-end gap-4 pt-8 border-t border-border">
           <button
             type="button"
-            onClick={() => reset()}
-            disabled={!isDirty}
-            className="btn-mongo-secondary px-8 flex items-center justify-center disabled:opacity-50"
+            className="btn-mongo-secondary px-8 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            disabled={isLoading}
+            onClick={handleCancel}
           >
-            <RotateCcw className="w-4 h-4 mr-2" /> Reset Perubahan
+            <XCircle className="w-4 h-4" />
+            Batal & Hapus Data
           </button>
           <button
             type="submit"
-            className="btn-mongo px-12 flex items-center justify-center shadow-lg shadow-primary/20"
+            disabled={isLoading}
+            className="btn-mongo px-12 flex items-center justify-center shadow-lg shadow-primary/20 min-w-[200px] disabled:opacity-70"
           >
-            <Save className="w-4 h-4 mr-2" /> Simpan Perubahan
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Memproses...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" /> Ajukan Pelayanan
+              </>
+            )}
           </button>
         </div>
       </form>
