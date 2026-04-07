@@ -35,8 +35,8 @@ const ROLE_STAGES: Record<Role, Stage[]> = {
   viewer: [],
 };
 
-if (!process.env.BETTER_AUTH_URL) {
-  throw new Error("Missing BETTER_AUTH_URL");
+if (!process.env.BETTER_AUTH_URL && !process.env.VERCEL_URL) {
+  throw new Error("Missing BETTER_AUTH_URL or VERCEL_URL");
 }
 
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -45,12 +45,14 @@ if (!process.env.BETTER_AUTH_SECRET) {
 
 export const auth = betterAuth({
   database: mongodbAdapter(await getDb()),
-  baseURL: process.env.BETTER_AUTH_URL!,
+  // ANTI-GAGAL: Menggunakan VERCEL_URL jika BETTER_AUTH_URL tidak sesuai dengan origin saat ini
+  baseURL: process.env.BETTER_AUTH_URL || `https://${process.env.VERCEL_URL}`,
   secret: process.env.BETTER_AUTH_SECRET,
 
   trustedOrigins: [
     "http://localhost:3000",
     "https://sipetra-nextjs.vercel.app",
+    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
   ],
 
   emailAndPassword: {
@@ -93,7 +95,6 @@ export const auth = betterAuth({
   },
 });
 
-// Reuse headers (lebih efisien)
 export const getSession = async () => {
   const h = await headers();
   return auth.api.getSession({ headers: h });
