@@ -46,7 +46,7 @@ if (!process.env.BETTER_AUTH_SECRET) {
 export const auth = betterAuth({
   database: mongodbAdapter(await getDb()),
 
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: process.env.BETTER_AUTH_URL.replace(/\/+$/, ""),
   secret: process.env.BETTER_AUTH_SECRET,
 
   emailAndPassword: {
