@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import SignOutButton from "@/components/sign-out-btn";
 import Link from "next/link"; // Import Link untuk navigasi rute
+import ChatUI from "@/components/chat-box";
 
 interface RightPanelProps {
   userName?: string;
@@ -76,100 +77,7 @@ export default function RightPanel({ userName, className }: RightPanelProps) {
         </div>
       </div>
 
-      <div className="flex flex-col h-[450px] bg-card/50 border border-border rounded-[2rem] p-4 shadow-sm backdrop-blur-sm overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-4 px-2 shrink-0">
-          <div className="h-2 w-2 rounded-full bg-mongo-green animate-pulse" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Operator Channel
-          </h3>
-        </div>
-
-        {/* Chat Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar pr-2 mb-2 custom-scrollbar flex flex-col justify-end">
-          <div className="space-y-4 pb-2">
-            {/* Pesan Masuk */}
-            <div className="flex flex-col items-start gap-1">
-              <div className="flex items-center gap-2 mb-1 ml-1">
-                <span className="text-[10px] font-bold text-foreground">
-                  Admin-B
-                </span>
-              </div>
-              <div className="max-w-[85%] p-3 rounded-2xl rounded-tl-none bg-muted/80 text-foreground border border-border/50 shadow-sm">
-                <p className="text-[11px] leading-relaxed">
-                  Halo! Berkas NOPEL **2026.001** sudah saya verifikasi. Aman
-                  untuk dilanjutkan.
-                </p>
-              </div>
-              <span className="text-[9px] text-muted-foreground ml-1">
-                09:41
-              </span>
-            </div>
-
-            {/* Pesan Keluar */}
-            <div className="flex flex-col items-end gap-1">
-              <div className="max-w-[85%] p-3 rounded-2xl rounded-tr-none bg-mongo-green text-white shadow-lg shadow-mongo-green/20">
-                <p className="text-[11px] leading-relaxed">
-                  Siap, segera saya proses. Apakah lampiran sertifikatnya sudah
-                  lengkap di Drive?
-                </p>
-              </div>
-              <span className="text-[9px] text-muted-foreground mr-1">
-                09:45
-              </span>
-            </div>
-
-            {/* Pesan Masuk */}
-            <div className="flex flex-col items-start gap-1">
-              <div className="flex items-center gap-2 mb-1 ml-1">
-                <span className="text-[10px] font-bold text-foreground">
-                  Admin-B
-                </span>
-              </div>
-              <div className="max-w-[85%] p-3 rounded-2xl rounded-tl-none bg-muted/80 text-foreground border border-border/50 shadow-sm">
-                <p className="text-[11px] leading-relaxed">
-                  Sudah lengkap. Cek folder "Lampiran_2026".
-                </p>
-              </div>
-              <span className="text-[9px] text-muted-foreground ml-1">
-                09:46
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Input */}
-        <div className="shrink-0 pt-1 border-t border-border/50">
-          <div className="flex items-end gap-2 p-1.5 bg-background border border-muted rounded-2xl focus-within:border-mongo-green/50 focus-within:ring-2 focus-within:ring-mongo-green/5 transition-all duration-300">
-            <textarea
-              placeholder="Ketik pesan..."
-              rows={1}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = "auto";
-                const newHeight = Math.min(target.scrollHeight, 120);
-                target.style.height = `${newHeight}px`;
-              }}
-              className="flex-1 bg-transparent border-none focus:ring-0 text-[11px] px-2 py-2 placeholder:text-muted-foreground/60 resize-none min-h-[36px] max-h-[120px] leading-normal no-scrollbar"
-            />
-
-            <button
-              type="button"
-              className="h-9 w-9 rounded-xl bg-mongo-green text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md shadow-mongo-green/20 shrink-0"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                className="w-4 h-4 rotate-45 -translate-y-0.5 -translate-x-0.5"
-              >
-                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
+      <ChatUI />
     </aside>
   );
 }
