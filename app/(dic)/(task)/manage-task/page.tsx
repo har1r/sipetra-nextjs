@@ -173,7 +173,7 @@ export default function ManageTask() {
       });
 
       // Membuka rute API export di tab baru untuk memicu download browser
-      window.open(`/api/export-excel?${params.toString()}`, "_blank");
+      window.open(`/api/export?${params.toString()}`, "_blank");
     } catch (err) {
       console.error("Export Error:", err);
     } finally {
@@ -579,7 +579,7 @@ export default function ManageTask() {
                     <td className="px-6 py-4">
                       <div className="flex justify-center items-center gap-2">
                         <Link
-                          href={`/dashboard/tasks/update/${task._id}`}
+                          href={`/update-task/${task._id}`}
                           className={`p-2 rounded-lg transition-colors ${task.uiHelpers?.canAction ? "text-blue-600 hover:bg-blue-50" : "text-muted-foreground/40 cursor-not-allowed"}`}
                           title="Edit Berkas"
                         >
