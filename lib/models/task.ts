@@ -1,9 +1,77 @@
-import mongoose, {
-  Schema,
-  Model,
-  models,
-  model,
-} from "mongoose";
+import mongoose, { Schema, Model, models, model } from "mongoose";
+
+/* =========================
+   0. DATA WILAYAH (ENUMERASI)
+========================= */
+
+const KECAMATAN_DATA = {
+  Pakuhaji: [
+    "Kalibaru",
+    "Surya Bahari",
+    "Sukawali",
+    "Kramat",
+    "Kohod",
+    "Gaga",
+    "Kiara Payung",
+    "Buaran Bambu",
+    "Paku Alam",
+    "Buaran Mangga",
+    "Pakuhaji",
+    "Bunisari",
+    "Laksana",
+    "Rawaboni",
+  ],
+  Kosambi: [
+    "Salembaran Jaya",
+    "Salembaran Jati",
+    "Kosambi Barat",
+    "Kosambi Timur",
+    "Dadap",
+    "Jatimulya",
+    "Cengklong",
+    "Blimbing",
+    "Rawa Burung",
+    "Rawa Rengas",
+  ],
+  Teluknaga: [
+    "Bojong Renged",
+    "Kebon Cau",
+    "Teluknaga",
+    "Babakan Asem",
+    "Kamp Melayu T",
+    "Kamp Melayu B",
+    "Kampung Besar",
+    "Lemo",
+    "Tegal Angus",
+    "Pangkalan",
+    "Tanjung Burung",
+    "Tanjung Pasir",
+    "Muara",
+  ],
+  "Sepatan Timur": [
+    "Kedaung Barat",
+    "Lebak Wangi",
+    "Tanah Merah",
+    "Jati Mulya",
+    "Gempolsari",
+    "Sangiang",
+    "Pondok Kelor",
+    "Kampung Kelor",
+  ],
+  Sepatan: [
+    "Mekarjaya",
+    "Karet",
+    "Pondok Jaya",
+    "Sepatan",
+    "Pisangan Jaya",
+    "Sarakan",
+    "Kayu Agung",
+    "Kayu Bongkok",
+  ],
+};
+
+const LIST_KECAMATAN = Object.keys(KECAMATAN_DATA);
+const LIST_DESA = Object.values(KECAMATAN_DATA).flat();
 
 /* =========================
    1. INTERFACES
@@ -16,14 +84,12 @@ export interface ITaskAttachment {
   uploadedAt: Date;
 }
 
-// Data Objek Pajak (Statis - Objek Tunggal)
 export interface IRequestedData {
   taxObjectAddress: string;
   taxObjectVillage: string;
   taxObjectSubdistrict: string;
 }
 
-// Data Rincian Perubahan (Dinamis - Array Item)
 export interface IAddRequestedData {
   taxpayerName: string;
   taxpayerNameSearch?: string;
@@ -76,11 +142,8 @@ export interface ITask {
     buildingArea: number;
   };
 
-  // Field Objek Pajak Statis yang dimohonkan
-  requestedData: IRequestedData; 
-  
-  // Array rincian perubahan
-  requestedChanges: IAddRequestedData[]; 
+  requestedData: IRequestedData;
+  requestedChanges: IAddRequestedData[];
 
   dynamicFields: Map<string, any>;
   attachments: ITaskAttachment[];
@@ -111,7 +174,7 @@ export interface ITask {
 ========================= */
 
 function calculateStatus(
-  items: { status: string }[]
+  items: { status: string }[],
 ): "in_progress" | "approved" | "revised" | "rejected" {
   if (!items.length) return "in_progress";
   if (items.some((i) => i.status === "rejected")) return "rejected";
@@ -131,14 +194,21 @@ const taskAttachmentSchema = new Schema<ITaskAttachment>({
   uploadedAt: { type: Date, default: Date.now },
 });
 
-// Schema untuk Array Perubahan (IAddRequestedData)
 const addRequestedDataSchema = new Schema<IAddRequestedData>(
   {
     taxpayerName: { type: String, required: true, trim: true },
     taxpayerNameSearch: { type: String, lowercase: true, trim: true },
     taxpayerAddress: { type: String, required: true, trim: true },
-    taxpayerVillage: { type: String, required: true, trim: true },
-    taxpayerSubdistrict: { type: String, required: true, trim: true },
+    taxpayerVillage: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    taxpayerSubdistrict: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     landArea: { type: Number, required: true, min: 0 },
     buildingArea: { type: Number, required: true, min: 0 },
     certificate: { type: String, required: true, trim: true },
@@ -149,7 +219,7 @@ const addRequestedDataSchema = new Schema<IAddRequestedData>(
     },
     note: { type: String, trim: true, default: "" },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const taskApprovalSchema = new Schema<ITaskApproval>(
@@ -157,7 +227,13 @@ const taskApprovalSchema = new Schema<ITaskApproval>(
     stageOrder: { type: Number, required: true },
     stage: {
       type: String,
-      enum: ["penginputan", "penelitian", "pengarsipan", "pengiriman", "pemeriksaan"],
+      enum: [
+        "penginputan",
+        "penelitian",
+        "pengarsipan",
+        "pengiriman",
+        "pemeriksaan",
+      ],
       default: "penginputan",
     },
     approvedBy: { type: Schema.Types.ObjectId, ref: "User" },
@@ -169,7 +245,7 @@ const taskApprovalSchema = new Schema<ITaskApproval>(
     },
     note: { type: String, trim: true, default: "" },
   },
-  { _id: false }
+  { _id: false },
 );
 
 /* =========================
@@ -179,30 +255,52 @@ const taskApprovalSchema = new Schema<ITaskApproval>(
 const taskSchema = new Schema<ITask>(
   {
     serviceType: { type: String, required: true },
-    nopel: { type: String, required: true, trim: true, unique: true, index: true },
+    nopel: {
+      type: String,
+      required: true,
+      trim: true,
+      unique: true,
+      index: true,
+    },
     nop: { type: String, required: true },
 
     baseData: {
       taxpayerName: { type: String, required: true },
       taxpayerNameSearch: { type: String },
       taxpayerAddress: { type: String, required: true },
-      taxpayerVillage: { type: String, required: true },
-      taxpayerSubdistrict: { type: String, required: true },
+      taxpayerVillage: { type: String, required: true, trim: true },
+      taxpayerSubdistrict: {
+        type: String,
+        required: true,
+        trim: true,
+      },
       taxObjectAddress: { type: String, required: true },
-      taxObjectVillage: { type: String, required: true },
-      taxObjectSubdistrict: { type: String, required: true },
+      taxObjectVillage: { type: String, required: true, enum: LIST_DESA },
+      taxObjectSubdistrict: {
+        type: String,
+        required: true,
+        enum: LIST_KECAMATAN,
+      },
       landArea: { type: Number, required: true },
       buildingArea: { type: Number, required: true },
     },
 
-    // 1. Memasukkan IRequestedData sebagai Objek
     requestedData: {
       taxObjectAddress: { type: String, required: true, trim: true },
-      taxObjectVillage: { type: String, required: true, trim: true },
-      taxObjectSubdistrict: { type: String, required: true, trim: true },
+      taxObjectVillage: {
+        type: String,
+        required: true,
+        trim: true,
+        enum: LIST_DESA,
+      },
+      taxObjectSubdistrict: {
+        type: String,
+        required: true,
+        trim: true,
+        enum: LIST_KECAMATAN,
+      },
     },
 
-    // 2. Memasukkan IAddRequestedData sebagai Array
     requestedChanges: [addRequestedDataSchema],
 
     dynamicFields: { type: Map, of: Schema.Types.Mixed, default: {} },
@@ -210,7 +308,11 @@ const taskSchema = new Schema<ITask>(
     approvals: [taskApprovalSchema],
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
     currentStage: { type: String, default: "penginputan" },
-    overallStatus: { type: String, enum: ["in_progress", "approved", "rejected", "revised"], default: "in_progress" },
+    overallStatus: {
+      type: String,
+      enum: ["in_progress", "approved", "rejected", "revised"],
+      default: "in_progress",
+    },
     reportId: { type: Schema.Types.ObjectId, ref: "Report" },
     revisedHistories: [
       {
@@ -224,7 +326,7 @@ const taskSchema = new Schema<ITask>(
     ],
     isLocked: { type: Boolean, default: false },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 /* =========================
@@ -254,7 +356,8 @@ taskSchema.pre("save", function () {
 
     if (currentApproval) {
       currentApproval.status = stageStatus;
-      currentApproval.approvedAt = stageStatus === "approved" ? new Date() : null;
+      currentApproval.approvedAt =
+        stageStatus === "approved" ? new Date() : null;
     }
   }
 

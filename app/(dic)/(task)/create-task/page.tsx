@@ -18,6 +18,75 @@ import {
   XCircle,
 } from "lucide-react";
 
+// --- Data Wilayah ---
+const KECAMATAN_DATA: Record<string, string[]> = {
+  Pakuhaji: [
+    "Kalibaru",
+    "Surya Bahari",
+    "Sukawali",
+    "Kramat",
+    "Kohod",
+    "Gaga",
+    "Kiara Payung",
+    "Buaran Bambu",
+    "Paku Alam",
+    "Buaran Mangga",
+    "Pakuhaji",
+    "Bunisari",
+    "Laksana",
+    "Rawaboni",
+  ],
+  Kosambi: [
+    "Salembaran Jaya",
+    "Salembaran Jati",
+    "Kosambi Barat",
+    "Kosambi Timur",
+    "Dadap",
+    "Jatimulya",
+    "Cengklong",
+    "Blimbing",
+    "Rawa Burung",
+    "Rawa Rengas",
+  ],
+  Teluknaga: [
+    "Bojong Renged",
+    "Kebon Cau",
+    "Teluknaga",
+    "Babakan Asem",
+    "Kamp Melayu T",
+    "Kamp Melayu B",
+    "Kampung Besar",
+    "Lemo",
+    "Tegal Angus",
+    "Pangkalan",
+    "Tanjung Burung",
+    "Tanjung Pasir",
+    "Muara",
+  ],
+  "Sepatan Timur": [
+    "Kedaung Barat",
+    "Lebak Wangi",
+    "Tanah Merah",
+    "Jati Mulya",
+    "Gempolsari",
+    "Sangiang",
+    "Pondok Kelor",
+    "Kampung Kelor",
+  ],
+  Sepatan: [
+    "Mekarjaya",
+    "Karet",
+    "Pondok Jaya",
+    "Sepatan",
+    "Pisangan Jaya",
+    "Sarakan",
+    "Kayu Agung",
+    "Kayu Bongkok",
+  ],
+};
+
+const LIST_KECAMATAN = Object.keys(KECAMATAN_DATA);
+
 // --- Types ---
 type TaskFormData = {
   serviceType: string;
@@ -159,22 +228,17 @@ export default function CreateTask() {
     try {
       const response = await fetch("/api/task", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
 
       const result = await response.json();
-
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(result.message || "Gagal mengirim data");
-      }
 
-      handleCancel(); // Clear form & cache setelah submit sukses
-
+      handleCancel();
       alert("Sukses! " + result.message);
-      router.push("/dashboard");
+      router.push("/manage-task");
       router.refresh();
     } catch (error: any) {
       console.error("SUBMIT_ERROR:", error);
@@ -193,6 +257,13 @@ export default function CreateTask() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 md:p-12 min-h-screen bg-background">
+      {/* DATALISTS FOR SEARCHABLE INPUTS (Hanya untuk Objek Pajak) */}
+      <datalist id="list-kecamatan">
+        {LIST_KECAMATAN.map((k) => (
+          <option key={k} value={k} />
+        ))}
+      </datalist>
+
       {/* HEADER SECTION */}
       <div className="mb-10">
         <h1 className="text-3xl font-semibold tracking-tight text-primary">
@@ -331,19 +402,21 @@ export default function CreateTask() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className={labelStyle}>Desa/Kelurahan</label>
-                    <input
-                      {...register("baseData.taxpayerVillage")}
-                      className={inputStyle}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
                     <label className={labelStyle}>Kecamatan</label>
                     <input
                       {...register("baseData.taxpayerSubdistrict")}
                       className={inputStyle}
                       disabled={isLoading}
+                      placeholder="Input Kecamatan..."
+                    />
+                  </div>
+                  <div>
+                    <label className={labelStyle}>Desa/Kelurahan</label>
+                    <input
+                      {...register("baseData.taxpayerVillage")}
+                      className={inputStyle}
+                      disabled={isLoading}
+                      placeholder="Input Desa..."
                     />
                   </div>
                 </div>
@@ -390,20 +463,33 @@ export default function CreateTask() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className={labelStyle}>Desa/Kelurahan</label>
-                    <input
-                      {...register("baseData.taxObjectVillage")}
-                      className={inputStyle}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div>
                     <label className={labelStyle}>Kecamatan</label>
                     <input
                       {...register("baseData.taxObjectSubdistrict")}
+                      list="list-kecamatan"
                       className={inputStyle}
                       disabled={isLoading}
+                      placeholder="Cari Kecamatan..."
                     />
+                  </div>
+                  <div>
+                    <label className={labelStyle}>Desa/Kelurahan</label>
+                    <input
+                      {...register("baseData.taxObjectVillage")}
+                      list={`list-desa-base-obj`}
+                      className={inputStyle}
+                      disabled={isLoading}
+                      placeholder="Cari Desa..."
+                    />
+                    <datalist id={`list-desa-base-obj`}>
+                      {(
+                        KECAMATAN_DATA[
+                          allFields.baseData?.taxObjectSubdistrict
+                        ] || []
+                      ).map((d) => (
+                        <option key={d} value={d} />
+                      ))}
+                    </datalist>
                   </div>
                 </div>
               </div>
@@ -428,20 +514,33 @@ export default function CreateTask() {
                   />
                 </div>
                 <div>
-                  <label className={labelStyle}>Desa/Kelurahan</label>
-                  <input
-                    {...register("requestedData.taxObjectVillage")}
-                    className={inputStyle}
-                    disabled={isLoading}
-                  />
-                </div>
-                <div>
                   <label className={labelStyle}>Kecamatan</label>
                   <input
                     {...register("requestedData.taxObjectSubdistrict")}
+                    list="list-kecamatan"
                     className={inputStyle}
                     disabled={isLoading}
+                    placeholder="Cari Kecamatan..."
                   />
+                </div>
+                <div>
+                  <label className={labelStyle}>Desa/Kelurahan</label>
+                  <input
+                    {...register("requestedData.taxObjectVillage")}
+                    list={`list-desa-req-obj`}
+                    className={inputStyle}
+                    disabled={isLoading}
+                    placeholder="Cari Desa..."
+                  />
+                  <datalist id={`list-desa-req-obj`}>
+                    {(
+                      KECAMATAN_DATA[
+                        allFields.requestedData?.taxObjectSubdistrict
+                      ] || []
+                    ).map((d) => (
+                      <option key={d} value={d} />
+                    ))}
+                  </datalist>
                 </div>
               </div>
             </div>
@@ -525,16 +624,6 @@ export default function CreateTask() {
                       </div>
                       <div className="grid grid-cols-2 gap-3 md:col-span-2">
                         <div>
-                          <label className={labelStyle}>Desa</label>
-                          <input
-                            {...register(
-                              `requestedChanges.${index}.taxpayerVillage`,
-                            )}
-                            className={inputStyle}
-                            disabled={isLoading}
-                          />
-                        </div>
-                        <div>
                           <label className={labelStyle}>Kecamatan</label>
                           <input
                             {...register(
@@ -542,6 +631,18 @@ export default function CreateTask() {
                             )}
                             className={inputStyle}
                             disabled={isLoading}
+                            placeholder="Input..."
+                          />
+                        </div>
+                        <div>
+                          <label className={labelStyle}>Desa</label>
+                          <input
+                            {...register(
+                              `requestedChanges.${index}.taxpayerVillage`,
+                            )}
+                            className={inputStyle}
+                            disabled={isLoading}
+                            placeholder="Input..."
                           />
                         </div>
                       </div>
@@ -644,8 +745,7 @@ export default function CreateTask() {
             disabled={isLoading}
             onClick={handleCancel}
           >
-            <XCircle className="w-4 h-4" />
-            Batal & Hapus Data
+            <XCircle className="w-4 h-4" /> Batal & Hapus Data
           </button>
           <button
             type="submit"
@@ -654,8 +754,7 @@ export default function CreateTask() {
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Memproses...
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Memproses...
               </>
             ) : (
               <>
