@@ -4,41 +4,26 @@ import { Card } from "@/components/ui/card";
 import { signUp } from "@/lib/auth/auth-client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ShieldCheck, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 import { z } from "zod";
 
+// =======================
+// VALIDATION
+// =======================
 const signUpSchema = z.object({
   name: z.string().min(3, "Nama minimal 3 karakter"),
-  userName: z.string().min(3, "Username minimal 3 karakter"),
-  email: z.email("Format email tidak valid"),
+  email: z.string().email("Format email tidak valid"),
   password: z.string().min(6, "Password minimal 6 karakter"),
-  role: z.enum(["admin", "operator", "viewer"]),
 });
 
 type SignUpForm = z.infer<typeof signUpSchema>;
 
-const AVAILABLE_STAGES = [
-  { id: "penginputan", label: "Penginputan" },
-  { id: "penelitian", label: "Penelitian" },
-  { id: "pengarsipan", label: "Pengarsipan" },
-  { id: "pengiriman", label: "Pengiriman" },
-  { id: "pemeriksaan", label: "Pemeriksaan" },
-];
-
-type SignUpPayload = SignUpForm & {
-  stages: string[];
-};
-
+// =======================
+// COMPONENT
+// =======================
 export default function SignUp() {
   const router = useRouter();
 
@@ -48,92 +33,101 @@ export default function SignUp() {
     Partial<Record<keyof SignUpForm, string>>
   >({});
 
-  const [selectedStages, setSelectedStages] = useState<string[]>([]);
-
   const [form, setForm] = useState<SignUpForm>({
     name: "",
-    userName: "",
     email: "",
     password: "",
-    role: "viewer",
   });
 
   const handleChange = (name: keyof SignUpForm, value: string) => {
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleStageToggle = (stageId: string) => {
-    setSelectedStages((prev) =>
-      prev.includes(stageId)
-        ? prev.filter((id) => id !== stageId)
-        : [...prev, stageId]
-    );
-  };
-
+  // =======================
+  // SUBMIT
+  // =======================
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (loading) return;
+
     setError("");
     setFieldErrors({});
     setLoading(true);
 
+    // VALIDATION
     const result = signUpSchema.safeParse(form);
 
     if (!result.success) {
       const errors: Partial<Record<keyof SignUpForm, string>> = {};
+
       result.error.issues.forEach((err) => {
         const field = err.path[0] as keyof SignUpForm;
         errors[field] = err.message;
       });
+
       setFieldErrors(errors);
       setLoading(false);
       return;
     }
 
     try {
-      const payload: SignUpPayload = {
-        ...result.data,
+      const payload = {
+        name: result.data.name.trim(),
         email: result.data.email.toLowerCase().trim(),
-        stages: form.role === "operator" ? selectedStages : [],
+        password: result.data.password,
       };
 
-      const { error: resError } = await signUp.email(payload);
+      console.log("Payload siap dikirim:", payload);
+
+      const { error: resError } = await signUp.email({
+        email: payload.email,
+        password: payload.password,
+        name: payload.name,
+      });
 
       if (resError) {
         setError(resError.message ?? "Gagal mendaftarkan akun.");
-      } else {
-        router.replace("/dashboard");
-        router.refresh();
+        return;
       }
-    } catch {
+
+      // SUCCESS
+      router.replace("/dashboard");
+      router.refresh();
+    } catch (err) {
       setError("Terjadi kesalahan sistem.");
     } finally {
       setLoading(false);
     }
   }
 
+  // =======================
+  // UI
+  // =======================
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
       <Card className="w-full max-w-4xl border border-border bg-card overflow-hidden">
         <form onSubmit={handleSubmit} className="flex flex-col md:flex-row">
-          
-          {/* LEFT PANEL */}
+          {/* LEFT */}
           <div className="flex-1 p-8 md:p-10 space-y-6">
             <div className="mb-8 flex items-center gap-2">
-            <span className="text-base font-semibold tracking-tight text-foreground uppercase">
-              Sipetra
-            </span>
-          </div>
+              <span className="text-base font-semibold tracking-tight uppercase">
+                Sipetra
+              </span>
+            </div>
 
-          <p className="text-sm text-muted-foreground mb-6">
-            Isi formulir di bawah untuk membuat akun baru.
-          </p>
+            <p className="text-sm text-muted-foreground">
+              Buat akun baru untuk mulai menggunakan sistem.
+            </p>
 
             <div className="space-y-4">
-              
-              {/* NAME & USERNAME */}
+              {/* NAME + USERNAME */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label>Nama Lengkap</Label>
+                <div>
+                  <Label className="my-1">Nama Lengkap</Label>
                   <Input
                     value={form.name}
                     onChange={(e) => handleChange("name", e.target.value)}
@@ -143,25 +137,11 @@ export default function SignUp() {
                     <p className="text-xs text-red-500">{fieldErrors.name}</p>
                   )}
                 </div>
-
-                <div className="space-y-1">
-                  <Label>Username</Label>
-                  <Input
-                    value={form.userName}
-                    onChange={(e) => handleChange("userName", e.target.value)}
-                    className="input-mongo"
-                  />
-                  {fieldErrors.userName && (
-                    <p className="text-xs text-red-500">
-                      {fieldErrors.userName}
-                    </p>
-                  )}
-                </div>
               </div>
 
               {/* EMAIL */}
-              <div className="space-y-1">
-                <Label>Email</Label>
+              <div>
+                <Label className="my-1">Email</Label>
                 <Input
                   type="email"
                   value={form.email}
@@ -174,8 +154,8 @@ export default function SignUp() {
               </div>
 
               {/* PASSWORD */}
-              <div className="space-y-1">
-                <Label>Password</Label>
+              <div>
+                <Label className="my-1">Password</Label>
                 <Input
                   type="password"
                   value={form.password}
@@ -183,9 +163,7 @@ export default function SignUp() {
                   className="input-mongo"
                 />
                 {fieldErrors.password && (
-                  <p className="text-xs text-red-500">
-                    {fieldErrors.password}
-                  </p>
+                  <p className="text-xs text-red-500">{fieldErrors.password}</p>
                 )}
               </div>
             </div>
@@ -200,70 +178,24 @@ export default function SignUp() {
 
           {/* RIGHT PANEL */}
           <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-border p-8 bg-muted/50 flex flex-col justify-between">
-            
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-center gap-2 text-primary mb-2">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase">
-                    Otoritas Akses
-                  </span>
-                </div>
-
-                <Select
-                  onValueChange={(val) =>
-                    handleChange("role", val as SignUpForm["role"])
-                  }
-                  defaultValue={form.role}
-                >
-                  <SelectTrigger className="input-mongo bg-card">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border border-border shadow-md">
-                    <SelectItem value="admin">Administrator</SelectItem>
-                    <SelectItem value="operator">Operator</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-primary">
+                <ShieldCheck className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase">
+                  Default Access
+                </span>
               </div>
 
-              {/* STAGES */}
-              <div>
-                <Label className="text-xs uppercase font-semibold">
-                  Tahapan Kerja
-                </Label>
-
-                {form.role === "operator" ? (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {AVAILABLE_STAGES.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => handleStageToggle(s.id)}
-                        className={`px-3 py-1 text-[10px] rounded border ${
-                          selectedStages.includes(s.id)
-                            ? "bg-primary text-white border-primary"
-                            : "bg-card border-border"
-                        }`}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-xs text-muted-foreground mt-2">
-                    Akses otomatis sesuai role
-                  </div>
-                )}
-              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Semua akun baru akan terdaftar sebagai <b>Viewer</b>.
+                Administrator akan mengatur hak akses lanjutan melalui sistem.
+              </p>
             </div>
 
             {/* SUBMIT */}
             <div className="pt-6 space-y-3">
               {error && (
-                <div className="text-xs text-red-500 text-center" role="alert">
-                  {error}
-                </div>
+                <div className="text-xs text-red-500 text-center">{error}</div>
               )}
 
               <button
@@ -280,7 +212,6 @@ export default function SignUp() {
                 )}
               </button>
             </div>
-
           </div>
         </form>
       </Card>

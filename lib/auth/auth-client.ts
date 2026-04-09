@@ -1,13 +1,13 @@
 import { createAuthClient } from "better-auth/react";
 
+const baseURL =
+  process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+  (typeof window !== "undefined" ? window.location.origin : "");
+
 export const authClient = createAuthClient({
-  // ANTI-GAGAL: Selalu gunakan origin domain saat ini agar tidak terkena CORS
-  baseURL:
-    typeof window !== "undefined"
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_APP_URL,
+  baseURL,
   inferAdditionalFields: true,
 });
 
-// Export helper langsung
+// Helper
 export const { signIn, signUp, signOut, useSession } = authClient;

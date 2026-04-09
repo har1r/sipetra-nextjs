@@ -3,50 +3,91 @@ import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import connectDB from "../db";
+import type { Db } from "mongodb";
+import { ObjectId as MongoObjectId } from "mongodb";
 
-let dbInstance: any;
+// =======================
+// TYPES
+// =======================
+export type Role = "admin" | "operator" | "viewer";
 
-async function getDb() {
-  if (!dbInstance) {
-    const mongooseInstance = await connectDB();
-    const client = mongooseInstance.connection.getClient();
-    dbInstance = client.db();
-  }
-  return dbInstance;
-}
-
-type Role = "admin" | "viewer";
-
-type Stage =
+export type Stage =
   | "penginputan"
   | "penelitian"
   | "pengarsipan"
   | "pengiriman"
   | "pemeriksaan";
 
-const ROLE_STAGES: Record<Role, Stage[]> = {
-  admin: [
-    "penginputan",
-    "penelitian",
-    "pengarsipan",
-    "pengiriman",
-    "pemeriksaan",
-  ],
-  viewer: [],
+const ALL_STAGES: Stage[] = [
+  "penginputan",
+  "penelitian",
+  "pengarsipan",
+  "pengiriman",
+  "pemeriksaan",
+];
+
+// INTERNAL USER TYPE (SOLVE UNKNOWN ISSUE)
+type InternalUser = {
+  email?: string;
+  role?: Role;
+  stages?: Stage[];
 };
 
-if (!process.env.BETTER_AUTH_URL && !process.env.VERCEL_URL) {
-  throw new Error("Missing BETTER_AUTH_URL or VERCEL_URL");
+// =======================
+// SESSION TYPE
+// =======================
+type SessionUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  stages: Stage[];
+  isActive: boolean;
+  lastLogin: Date | null;
+};
+
+type SessionCallbackParams = {
+  session: any;
+  user: any;
+};
+
+// =======================
+// DB CONNECTION
+// =======================
+let dbPromise: Promise<Db> | null = null;
+
+async function getDb(): Promise<Db> {
+  if (!dbPromise) {
+    dbPromise = (async () => {
+      const mongooseInstance = await connectDB();
+      const client = mongooseInstance.connection.getClient();
+      return client.db();
+    })();
+  }
+
+  return dbPromise;
 }
 
-if (!process.env.BETTER_AUTH_SECRET) {
+// =======================
+// ENV
+// =======================
+const BASE_URL =
+  process.env.BETTER_AUTH_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+
+if (!BASE_URL) throw new Error("Missing BETTER_AUTH_URL or VERCEL_URL");
+if (!process.env.BETTER_AUTH_SECRET)
   throw new Error("Missing BETTER_AUTH_SECRET");
-}
+
+// =======================
+// INIT AUTH
+// =======================
+const db = await getDb();
 
 export const auth = betterAuth({
-  database: mongodbAdapter(await getDb()),
-  // ANTI-GAGAL: Menggunakan VERCEL_URL jika BETTER_AUTH_URL tidak sesuai dengan origin saat ini
-  baseURL: process.env.BETTER_AUTH_URL || `https://${process.env.VERCEL_URL}`,
+  database: mongodbAdapter(db),
+
+  baseURL: BASE_URL,
   secret: process.env.BETTER_AUTH_SECRET,
 
   trustedOrigins: [
@@ -63,13 +104,12 @@ export const auth = betterAuth({
   session: {
     cookieCache: {
       enabled: true,
-      maxAge: 3600, // 1 jam
+      maxAge: 5 * 60,
     },
   },
 
   user: {
     additionalFields: {
-      userName: { type: "string", required: true },
       role: { type: "string", defaultValue: "viewer" },
       stages: { type: "string[]", defaultValue: [] },
       isActive: { type: "boolean", defaultValue: true },
@@ -77,36 +117,125 @@ export const auth = betterAuth({
     },
   },
 
+  callbacks: {
+    session: async ({ session, user }: SessionCallbackParams) => ({
+      ...session,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role as Role,
+        stages: (user.stages || []) as Stage[],
+        isActive: user.isActive,
+        lastLogin: user.lastLogin ?? null,
+      } satisfies SessionUser,
+    }),
+  },
+
   databaseHooks: {
     user: {
       create: {
-        before: async (user) => {
-          const role = user.role as Role;
+        before: async (rawUser) => {
+          const user = rawUser as unknown as InternalUser;
+
+          // VALIDATION (WAJIB - PRODUCTION SAFE)
+          if (!user.email) {
+            throw new Error("Email is required");
+          }
+
+          const role: Role = "viewer";
 
           return {
             data: {
               ...user,
-              stages: ROLE_STAGES[role] ?? [],
+              email: user.email.toLowerCase().trim(),
+              role,
+              stages: [],
+              isActive: true,
+              lastLogin: null,
             },
           };
+        },
+      },
+
+      update: {
+        before: async (rawUser) => {
+          const user = rawUser as unknown as InternalUser;
+
+          let stages = user.stages;
+
+          if (user.role === "operator" && Array.isArray(stages)) {
+            stages = stages.slice(0, 2);
+          }
+
+          return {
+            data: {
+              ...user,
+              email: user.email?.toLowerCase().trim(),
+              ...(stages ? { stages } : {}),
+            },
+          };
+        },
+      },
+    },
+
+    session: {
+      create: {
+        after: async (session) => {
+          await db.collection("users").updateOne(
+            { _id: new MongoObjectId(session.userId) }, // FIX ObjectId
+            {
+              $set: { lastLogin: new Date() },
+            },
+          );
         },
       },
     },
   },
 });
 
+// =======================
+// ACCESS CONTROL
+// =======================
+export function getUserStages(user: { role: Role; stages?: Stage[] }): Stage[] {
+  if (user.role === "admin" || user.role === "viewer") {
+    return ALL_STAGES;
+  }
+  return user.stages || [];
+}
+
+export function canAccessStage(
+  user: { role: Role; stages?: Stage[] },
+  stage: Stage,
+) {
+  return getUserStages(user).includes(stage);
+}
+
+export function canModifyStage(
+  user: { role: Role; stages?: Stage[] },
+  stage: Stage,
+) {
+  if (user.role === "viewer") return false;
+  if (user.role === "admin") return true;
+  return user.stages?.includes(stage) ?? false;
+}
+
+// =======================
+// SESSION
+// =======================
 export const getSession = async () => {
   const h = await headers();
   return auth.api.getSession({ headers: h });
 };
 
+// =======================
+// SIGN OUT
+// =======================
 export const signOutServer = async () => {
   const h = await headers();
-  const result = await auth.api.signOut({ headers: h });
+  const res = await auth.api.signOut({ headers: h });
 
-  if (!result.success) {
-    throw new Error("Failed to sign out");
-  }
+  if (!res.success) throw new Error("Sign out failed");
 
   redirect("/sign-in");
 };
