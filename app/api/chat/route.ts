@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Chat from "@/lib/models/chat";
 import mongoose from "mongoose";
-import { pusherServer } from "@/lib/pusher-server";
+import { getPusherServer } from "@/lib/pusher-server";
+
+const pusherServer = getPusherServer();
 
 // --- User Schema (lightweight, hanya untuk lookup) ---
 const userSchema = new mongoose.Schema({
@@ -105,6 +107,11 @@ export async function POST(req: Request) {
 
     // ✅ Pusher (safe)
     try {
+      console.log("ENV CHECK:", {
+        appId: process.env.PUSHER_APP_ID,
+        key: process.env.PUSHER_KEY,
+        secret: process.env.PUSHER_SECRET,
+      });
       await pusherServer.trigger("chat-channel", "incoming-message", finalData);
     } catch (err) {
       console.error("Pusher error:", err);
