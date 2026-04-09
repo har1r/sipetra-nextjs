@@ -1,28 +1,24 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, model, models, InferSchemaType } from "mongoose";
 
-// Interface untuk TypeScript agar type-safe
-export interface IChat extends Document {
-  senderId: mongoose.Types.ObjectId;
-  senderName: string;
-  message: string;
-  role: "admin" | "operator" | "system"; // Membedakan jenis pengirim
-  createdAt: Date;
-}
-
-const ChatSchema: Schema = new Schema(
+// --- Schema ---
+const ChatSchema = new Schema(
   {
     senderId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Harus sama dengan nama model di API route
-      required: true,
+      type: String,
+      required: [true, "senderId wajib diisi"],
+      trim: true,
     },
     senderName: {
       type: String,
-      required: true,
+      required: [true, "senderName wajib diisi"],
+      trim: true,
     },
     message: {
       type: String,
-      required: true,
+      required: [true, "message wajib diisi"],
+      trim: true,
+      minlength: [1, "message tidak boleh kosong"],
+      maxlength: [1000, "message terlalu panjang"],
     },
     role: {
       type: String,
@@ -31,11 +27,17 @@ const ChatSchema: Schema = new Schema(
     },
   },
   {
-    timestamps: true, // Otomatis membuat field createdAt dan updatedAt
+    timestamps: true,
   },
 );
 
-// Mencegah error "OverwriteModelError" saat hot-reloading di Next.js
-const Chat = mongoose.models.Chat || mongoose.model<IChat>("Chat", ChatSchema);
+// --- Index (biar query cepat) ---
+ChatSchema.index({ createdAt: -1 });
+
+// --- Type Inference ---
+export type ChatType = InferSchemaType<typeof ChatSchema>;
+
+// --- Model ---
+const Chat = models.Chat || model<ChatType>("Chat", ChatSchema);
 
 export default Chat;

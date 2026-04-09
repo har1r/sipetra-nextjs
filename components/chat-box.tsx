@@ -1,64 +1,126 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-// Import hook session dari library Better Auth Anda
-// Sesuaikan path import ini dengan setup project Anda
 import { authClient } from "@/lib/auth/auth-client";
+import { getPusherClient } from "@/lib/pusher-client";
 
 export default function ChatUI() {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputValue, setInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Mengambil session aktif dari Better Auth
   const { data: session } = authClient.useSession();
 
-  // Ambil data user dari session, berikan fallback agar tidak error saat loading
   const MY_NAME = session?.user?.name || "User";
   const MY_ID = session?.user?.id;
 
+  // =======================
+  // ✅ HELPER: UNIQUE FILTER
+  // =======================
+  const uniqueMessages = (msgs: any[]) => {
+    const seen = new Set();
+    return msgs.filter((msg) => {
+      if (seen.has(msg._id)) return false;
+      seen.add(msg._id);
+      return true;
+    });
+  };
+
+  // =======================
+  // ✅ FETCH MESSAGES
+  // =======================
   useEffect(() => {
     const fetchMessages = async () => {
       try {
         const res = await fetch("/api/chat");
+
+        if (!res.ok) throw new Error("Gagal fetch chat");
+
         const data = await res.json();
-        if (Array.isArray(data)) setMessages(data);
+
+        if (Array.isArray(data)) {
+          setMessages(uniqueMessages(data));
+        }
       } catch (err) {
         console.error("Gagal load chat:", err);
       }
     };
+
     fetchMessages();
   }, []);
 
+  // =======================
+  // ✅ REALTIME PUSHER (FIX TOTAL)
+  // =======================
+  useEffect(() => {
+    const client = getPusherClient();
+    if (!client || !MY_ID) return;
+
+    const channel = client.subscribe("chat-channel");
+
+    const handler = (newMessage: any) => {
+      setMessages((prev) => {
+        // ✅ 1. IGNORE message dari diri sendiri (SOLUSI UTAMA)
+        if (newMessage.senderId === MY_ID) return prev;
+
+        // ✅ 2. CEK DUPLIKAT
+        if (prev.some((msg) => msg._id === newMessage._id)) return prev;
+
+        return uniqueMessages([...prev, newMessage]);
+      });
+    };
+
+    channel.bind("incoming-message", handler);
+
+    return () => {
+      channel.unbind("incoming-message", handler);
+      client.unsubscribe("chat-channel");
+    };
+  }, [MY_ID]);
+
+  // =======================
+  // ✅ AUTO SCROLL
+  // =======================
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
+  // =======================
+  // ✅ SEND MESSAGE
+  // =======================
   const handleSendMessage = async () => {
-    // Validasi: Jangan kirim jika input kosong atau user belum login
     if (!inputValue.trim() || !MY_ID) return;
 
     const currentText = inputValue;
     setInputValue("");
 
-    // Optimistic Update
+    const tempId = `temp-${Date.now()}`;
+
     const tempMsg = {
-      _id: Date.now().toString(),
+      _id: tempId,
+      senderId: MY_ID,
       senderName: MY_NAME,
       message: currentText,
       createdAt: new Date(),
-      senderId: { name: MY_NAME },
+      sender: {
+        name: MY_NAME,
+        image: null,
+      },
     };
+
+    // ✅ Optimistic UI
     setMessages((prev) => [...prev, tempMsg]);
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          senderId: MY_ID, // Sekarang menggunakan ID asli dari Better Auth
+          senderId: MY_ID,
           senderName: MY_NAME,
           message: currentText,
           role: "operator",
@@ -68,16 +130,24 @@ export default function ChatUI() {
       if (!res.ok) throw new Error("Gagal simpan ke database");
 
       const savedMsg = await res.json();
-      setMessages((prev) =>
-        prev.map((m) => (m._id === tempMsg._id ? savedMsg : m)),
-      );
+
+      // ✅ Replace temp → real + bersihin duplicate
+      setMessages((prev) => {
+        const updated = prev.map((m) => (m._id === tempId ? savedMsg : m));
+
+        return uniqueMessages(updated);
+      });
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error kirim pesan:", error);
     }
   };
 
+  // =======================
+  // UI
+  // =======================
   return (
     <div className="flex flex-col h-[450px] bg-card/50 border border-border rounded-[2rem] p-4 shadow-sm backdrop-blur-sm overflow-hidden">
+      {/* HEADER */}
       <div className="flex items-center gap-2 mb-4 px-2 shrink-0">
         <div className="h-2 w-2 rounded-full bg-mongo-green animate-pulse" />
         <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -85,35 +155,43 @@ export default function ChatUI() {
         </h3>
       </div>
 
+      {/* CHAT AREA */}
       <div
         ref={scrollRef}
         className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-4 pr-2 mb-2 flex flex-col"
       >
         <div className="flex-1" />
+
         <div className="space-y-4 pb-2">
           {messages.map((msg) => {
             const displayName =
-              msg.senderId?.name || msg.senderName || "Unknown User";
+              msg.sender?.name || msg.senderName || "Unknown User";
 
-            // Cek apakah pengirim adalah user yang sedang login
-            const isMe =
-              msg.senderId?._id === MY_ID || msg.senderName === MY_NAME;
+            const isMe = msg.senderId === MY_ID;
 
             return (
               <div
-                key={msg._id}
-                className={`flex flex-col ${isMe ? "items-end" : "items-start"} gap-1`}
+                key={msg._id} // ✅ FIX FINAL (tidak perlu gabung timestamp)
+                className={`flex flex-col ${
+                  isMe ? "items-end" : "items-start"
+                } gap-1`}
               >
                 <div className="flex items-center gap-2 mb-1 ml-1">
                   <span className="text-[10px] font-bold text-foreground">
                     {displayName}
                   </span>
                 </div>
+
                 <div
-                  className={`max-w-[85%] p-3 rounded-2xl ${isMe ? "rounded-tr-none bg-mongo-green text-white shadow-md shadow-mongo-green/10" : "rounded-tl-none bg-muted/80 text-foreground border border-border/50"}`}
+                  className={`max-w-[85%] p-3 rounded-2xl ${
+                    isMe
+                      ? "rounded-tr-none bg-mongo-green text-white shadow-md shadow-mongo-green/10"
+                      : "rounded-tl-none bg-muted/80 text-foreground border border-border/50"
+                  }`}
                 >
                   <p className="text-[11px] leading-relaxed">{msg.message}</p>
                 </div>
+
                 <span className="text-[9px] text-muted-foreground px-1">
                   {new Date(msg.createdAt).toLocaleTimeString([], {
                     hour: "2-digit",
@@ -126,6 +204,7 @@ export default function ChatUI() {
         </div>
       </div>
 
+      {/* INPUT */}
       <div className="shrink-0 pt-2 border-t border-border/50 mt-auto">
         <div className="flex items-end gap-2 p-1.5 bg-background border-2 border-muted rounded-2xl focus-within:border-mongo-green/50 transition-all duration-300">
           <textarea
@@ -137,7 +216,6 @@ export default function ChatUI() {
                 handleSendMessage();
               }
             }}
-            // Disable input jika session belum siap
             disabled={!session}
             placeholder={session ? "Ketik pesan..." : "Silahkan login..."}
             className="flex-1 bg-transparent border-none focus:ring-0 text-[11px] px-2 py-2 resize-none max-h-[120px] no-scrollbar disabled:opacity-50"
@@ -147,6 +225,7 @@ export default function ChatUI() {
               target.style.height = `${Math.min(target.scrollHeight, 120)}px`;
             }}
           />
+
           <button
             onClick={handleSendMessage}
             disabled={!session}

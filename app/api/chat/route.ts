@@ -2,73 +2,120 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Chat from "@/lib/models/chat";
 import mongoose from "mongoose";
+import { pusherServer } from "@/lib/pusher-server";
 
-// Better Auth biasanya membuat koleksi bernama "user" atau "users"
-// Kita buat skema minimal agar populate tahu arahnya ke mana
+// --- User Schema (lightweight, hanya untuk lookup) ---
+const userSchema = new mongoose.Schema({
+  name: String,
+  image: String,
+});
+
+// helper biar tidak redefine model terus
 const User =
-  mongoose.models.User ||
-  mongoose.model(
-    "User",
-    new mongoose.Schema({
-      name: String,
-      image: String,
-    }),
-    "user",
-  ); // Parameter ketiga "user" adalah nama koleksi asli di MongoDB
+  mongoose.models.User || mongoose.model("User", userSchema, "users");
 
+// =======================
+// ✅ GET MESSAGES
+// =======================
 export async function GET() {
   try {
     await connectDB();
 
-    const messages = await Chat.find()
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .populate({
-        path: "senderId",
-        select: "name image", // Ambil name dan foto profil dari Better Auth
-        model: User, // Gunakan shadow model tadi
-      });
+    const messages = await Chat.find().sort({ createdAt: -1 }).limit(50).lean();
 
-    return NextResponse.json(messages.reverse(), { status: 200 });
-  } catch (error) {
-    console.error("GET Error:", error);
+    const populated = await Promise.all(
+      messages.map(async (msg: any) => {
+        let userData = null;
+
+        try {
+          // ✅ hanya query kalau valid ObjectId
+          if (mongoose.Types.ObjectId.isValid(msg.senderId)) {
+            userData = await User.findById(msg.senderId)
+              .select("name image")
+              .lean();
+          }
+        } catch (e) {
+          console.error("User lookup error:", msg.senderId);
+        }
+
+        return {
+          ...msg,
+          sender: userData || {
+            name: msg.senderName || "Unknown",
+            image: null,
+          },
+        };
+      }),
+    );
+
+    return NextResponse.json(populated.reverse(), { status: 200 });
+  } catch (error: any) {
+    console.error("CRITICAL BACKEND ERROR (GET):", error);
     return NextResponse.json(
-      { error: "Gagal mengambil pesan" },
+      { error: error.message || "Internal Server Error" },
       { status: 500 },
     );
   }
 }
 
+// =======================
+// ✅ SEND MESSAGE
+// =======================
 export async function POST(req: Request) {
   try {
     await connectDB();
+
     const body = await req.json();
+
     const { senderId, senderName, message, role } = body;
 
-    if (!senderId || !message) {
+    // ✅ VALIDASI WAJIB (biar gak crash)
+    if (!senderId || !senderName || !message) {
       return NextResponse.json(
-        { error: "Data tidak lengkap" },
+        { error: "senderId, senderName, dan message wajib diisi" },
         { status: 400 },
       );
     }
 
     const newMessage = await Chat.create({
       senderId,
-      senderName, // Kita tetap simpan ini sebagai backup/denormalisasi
+      senderName,
       message,
       role: role || "operator",
     });
 
-    // Kembalikan data yang sudah ter-populate agar UI langsung update dengan benar
-    const populatedMessage = await Chat.findById(newMessage._id).populate({
-      path: "senderId",
-      select: "name image",
-      model: User,
-    });
+    let userDetail = null;
 
-    return NextResponse.json(populatedMessage, { status: 201 });
+    try {
+      // ✅ hanya query kalau valid ObjectId
+      if (mongoose.Types.ObjectId.isValid(senderId)) {
+        userDetail = await User.findById(senderId).select("name image").lean();
+      }
+    } catch (e) {
+      console.error("User lookup error (POST):", senderId);
+    }
+
+    const finalData = {
+      ...newMessage.toObject(),
+      sender: userDetail || {
+        name: senderName,
+        image: null,
+      },
+    };
+
+    // ✅ Pusher (safe)
+    try {
+      await pusherServer.trigger("chat-channel", "incoming-message", finalData);
+    } catch (err) {
+      console.error("Pusher error:", err);
+    }
+
+    return NextResponse.json(finalData, { status: 201 });
   } catch (error: any) {
-    console.error("POST Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("CRITICAL BACKEND ERROR (POST):", error);
+    return NextResponse.json(
+      { error: error.message || "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
