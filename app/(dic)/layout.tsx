@@ -16,7 +16,7 @@ export default async function DashboardLayoutServer({
   }
 
   return (
-    <DashboardLayoutClient userName={session.user.name}>
+    <DashboardLayoutClient user={session.user}>
       {children}
     </DashboardLayoutClient>
   );

@@ -3,13 +3,13 @@
 import { Search, Menu, UserCircle } from "lucide-react";
 
 interface NavbarProps {
-  userName?: string;
+  user?: any;
   onMenuClick: () => void;
   onRightPanelClick: () => void; // Tambahkan prop ini
 }
 
 export default function Navbar({
-  userName,
+  user,
   onMenuClick,
   onRightPanelClick,
 }: NavbarProps) {
@@ -40,7 +40,7 @@ export default function Navbar({
           className="xl:hidden p-2 hover:bg-muted rounded-xl text-foreground transition-all flex items-center gap-2 border border-border bg-card"
         >
           <UserCircle size={22} className="text-primary" />
-          <span className="text-xs font-bold pr-1">{userName || "User"}</span>
+          <span className="text-xs font-bold pr-1">{user?.name || "User"}</span>
         </button>
       </div>
     </nav>

@@ -12,11 +12,11 @@ import Link from "next/link"; // Import Link untuk navigasi rute
 import ChatUI from "@/components/chat-box";
 
 interface RightPanelProps {
-  userName?: string;
+  user?: any;
   className?: string;
 }
 
-export default function RightPanel({ userName, className }: RightPanelProps) {
+export default function RightPanel({ user, className }: RightPanelProps) {
   return (
     <aside
       className={`flex flex-col gap-6 p-6 h-full overflow-y-auto no-scrollbar ${className}`}
@@ -31,9 +31,16 @@ export default function RightPanel({ userName, className }: RightPanelProps) {
             <button className="flex items-center gap-3 group">
               <div className="text-right">
                 <p className="text-sm font-bold text-foreground group-hover:text-[#00684A] transition-colors">
-                  {userName || "User"}
+                  {user?.name || "User"}
                 </p>
-                <p className="text-xs text-muted-foreground">Administrator</p>
+                <p className="text-xs text-muted-foreground">
+                  {user?.role || "Viewer"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {user?.lastLogin
+                    ? `Last login: ${new Date(user.lastLogin).toLocaleString()}`
+                    : "No login data"}
+                </p>
               </div>
 
               <div className="h-10 w-10 rounded-2xl flex items-center justify-center bg-mongo-green shadow-lg text-white">
@@ -48,9 +55,11 @@ export default function RightPanel({ userName, className }: RightPanelProps) {
             <DropdownMenuLabel className="font-normal px-3 py-2">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-bold text-foreground">
-                  {userName || "User"}
+                  {user?.name || "User"}
                 </p>
-                <p className="text-xs text-muted-foreground">Sesi Aktif</p>
+                <p className="text-xs text-muted-foreground">
+                  {user?.isActive ? "Sesi Aktif" : "Sesi Tidak Aktif"}
+                </p>
               </div>
             </DropdownMenuLabel>
 
@@ -77,7 +86,7 @@ export default function RightPanel({ userName, className }: RightPanelProps) {
         </div>
       </div>
 
-      <ChatUI />
+      <ChatUI user={user} />
     </aside>
   );
 }

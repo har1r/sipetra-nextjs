@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
+import { customSession } from "better-auth/plugins";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import connectDB from "../db";
@@ -28,9 +29,12 @@ const ALL_STAGES: Stage[] = [
 
 // INTERNAL USER TYPE (SOLVE UNKNOWN ISSUE)
 type InternalUser = {
-  email?: string;
-  role?: Role;
-  stages?: Stage[];
+  email: string;
+  name: string;
+  role: Role;
+  stages: Stage[];
+  isActive: boolean;
+  lastLogin: Date;
 };
 
 // =======================
@@ -117,9 +121,8 @@ export const auth = betterAuth({
     },
   },
 
-  callbacks: {
-    session: async ({ session, user }: SessionCallbackParams) => ({
-      ...session,
+  plugins: [
+    customSession(async ({ user, session }: SessionCallbackParams) => ({
       user: {
         id: user.id,
         name: user.name,
@@ -129,8 +132,9 @@ export const auth = betterAuth({
         isActive: user.isActive,
         lastLogin: user.lastLogin ?? null,
       } satisfies SessionUser,
-    }),
-  },
+      session,
+    })),
+  ],
 
   databaseHooks: {
     user: {
@@ -141,6 +145,10 @@ export const auth = betterAuth({
           // VALIDATION (WAJIB - PRODUCTION SAFE)
           if (!user.email) {
             throw new Error("Email is required");
+          }
+
+          if (!user.name) {
+            throw new Error("Name is required");
           }
 
           const role: Role = "viewer";
@@ -182,7 +190,7 @@ export const auth = betterAuth({
     session: {
       create: {
         after: async (session) => {
-          await db.collection("users").updateOne(
+          await db.collection("user").updateOne(
             { _id: new MongoObjectId(session.userId) }, // FIX ObjectId
             {
               $set: { lastLogin: new Date() },

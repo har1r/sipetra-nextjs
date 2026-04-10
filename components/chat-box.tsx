@@ -1,18 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { authClient } from "@/lib/auth/auth-client";
 import { getPusherClient } from "@/lib/pusher-client";
 
-export default function ChatUI() {
+interface ChatUIProps {
+  user?: any;
+}
+
+export default function ChatUI({ user }: ChatUIProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputValue, setInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { data: session } = authClient.useSession();
-
-  const MY_NAME = session?.user?.name || "User";
-  const MY_ID = session?.user?.id;
+  const MY_NAME = user?.name || "User";
+  const MY_ID = user?.id;
 
   // =======================
   // ✅ HELPER: UNIQUE FILTER
@@ -216,8 +217,8 @@ export default function ChatUI() {
                 handleSendMessage();
               }
             }}
-            disabled={!session}
-            placeholder={session ? "Ketik pesan..." : "Silahkan login..."}
+            disabled={!user}
+            placeholder={user ? "Ketik pesan..." : "Silahkan login..."}
             className="flex-1 bg-transparent border-none focus:ring-0 text-[11px] px-2 py-2 resize-none max-h-[120px] no-scrollbar disabled:opacity-50"
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
@@ -228,7 +229,7 @@ export default function ChatUI() {
 
           <button
             onClick={handleSendMessage}
-            disabled={!session}
+            disabled={!user}
             className="h-9 w-9 rounded-xl bg-mongo-green text-white flex items-center justify-center shrink-0 mb-0.5 hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:hover:scale-100"
           >
             <svg

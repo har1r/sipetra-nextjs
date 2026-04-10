@@ -8,10 +8,10 @@ import "@/app/(dic)/dic-layout.css";
 
 interface Props {
   children: React.ReactNode;
-  userName?: string;
+  user?: any;
 }
 
-export default function DashboardLayoutClient({ children, userName }: Props) {
+export default function DashboardLayoutClient({ children, user }: Props) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
 
@@ -40,7 +40,7 @@ export default function DashboardLayoutClient({ children, userName }: Props) {
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col min-w-0 h-full relative">
         <Navbar
-          userName={userName}
+          user={user}
           onMenuClick={() => setIsMobileMenuOpen(true)}
           onRightPanelClick={() => setIsRightPanelOpen(true)}
         />
@@ -56,10 +56,7 @@ export default function DashboardLayoutClient({ children, userName }: Props) {
           ${isRightPanelOpen ? "translate-x-0" : "translate-x-full"}`}
       >
         <Suspense fallback={null}>
-          <RightPanel
-            userName={userName}
-            className="h-full w-full border-none"
-          />
+          <RightPanel user={user} className="h-full w-full border-none" />
         </Suspense>
       </aside>
     </div>
